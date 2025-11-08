@@ -1,0 +1,54 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+*.md
+PROGRESS.md
+README.md
+
+# Scripts
+scripts-for-claude/
+
+# Testing
+tests/
+test_*.py
+*_test.py
+
+# Database
+*.db
+*.sqlite
+
+# Logs
+*.log
+logs/
