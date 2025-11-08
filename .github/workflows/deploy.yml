@@ -21,8 +21,10 @@ on:
         default: 'deploy-dev'
 
 env:
-  AWS_REGION: eu-north-1  # Stockholm region - change if needed
+  AWS_REGION: eu-central-1  # Frankfurt region
   ECR_REPOSITORY: fintrack-backend
+  EB_APPLICATION_NAME: Fintrack-backend
+  EB_ENVIRONMENT_NAME: Fintrack-backend-env
 
 jobs:
   # Determine environment variables based on inputs
@@ -50,7 +52,7 @@ jobs:
 
   # Build and deploy backend
   deploy-backend:
-    name: Deploy Backend to AWS App Runner
+    name: Deploy Backend to Elastic Beanstalk
     runs-on: ubuntu-latest
     needs: setup
 
@@ -84,18 +86,52 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ needs.setup.outputs.environment }}-latest
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
-      - name: Deploy to AWS App Runner
+      - name: Update Dockerrun.aws.json with new image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
         run: |
-          aws apprunner update-service \
-            --service-arn ${{ secrets.APP_RUNNER_SERVICE_ARN_DEV }} \
-            --source-configuration "ImageRepository={ImageIdentifier=${{ steps.build-image.outputs.image }},ImageRepositoryType=ECR,ImageConfiguration={Port=8000}}" \
+          cd Backend
+          sed -i "s|\"Name\": \".*\"|\"Name\": \"$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG\"|" Dockerrun.aws.json
+          cat Dockerrun.aws.json
+
+      - name: Generate deployment package
+        run: |
+          cd Backend
+          zip -r deploy.zip Dockerrun.aws.json
+
+      - name: Deploy to Elastic Beanstalk
+        run: |
+          # Create application version
+          VERSION_LABEL="${{ github.event.inputs.branch }}-${{ github.sha }}-$(date +%s)"
+          S3_BUCKET="elasticbeanstalk-${{ env.AWS_REGION }}-${{ secrets.AWS_ACCOUNT_ID }}"
+          S3_KEY="${{ env.EB_APPLICATION_NAME }}/$VERSION_LABEL.zip"
+
+          # Upload to S3
+          aws s3 cp Backend/deploy.zip s3://$S3_BUCKET/$S3_KEY
+
+          # Create application version
+          aws elasticbeanstalk create-application-version \
+            --application-name ${{ env.EB_APPLICATION_NAME }} \
+            --version-label $VERSION_LABEL \
+            --source-bundle S3Bucket=$S3_BUCKET,S3Key=$S3_KEY \
             --region ${{ env.AWS_REGION }}
+
+          # Deploy to environment
+          aws elasticbeanstalk update-environment \
+            --application-name ${{ env.EB_APPLICATION_NAME }} \
+            --environment-name ${{ env.EB_ENVIRONMENT_NAME }} \
+            --version-label $VERSION_LABEL \
+            --region ${{ env.AWS_REGION }}
+
+          echo "Deployment initiated with version: $VERSION_LABEL"
 
       - name: Wait for deployment
         run: |
-          echo "Waiting for App Runner service to deploy..."
-          aws apprunner wait service-running \
-            --service-arn ${{ secrets.APP_RUNNER_SERVICE_ARN_DEV }} \
+          echo "Waiting for Elastic Beanstalk environment to be ready..."
+          aws elasticbeanstalk wait environment-updated \
+            --application-name ${{ env.EB_APPLICATION_NAME }} \
+            --environment-names ${{ env.EB_ENVIRONMENT_NAME }} \
             --region ${{ env.AWS_REGION }}
           echo "Backend deployment completed!"
 
@@ -104,6 +140,7 @@ jobs:
     name: Deploy Frontend to AWS Amplify
     runs-on: ubuntu-latest
     needs: setup
+    if: false  # Disabled for now - enable when Amplify is set up
 
     steps:
       - name: Checkout code
@@ -178,22 +215,37 @@ jobs:
   health-check:
     name: Verify Deployment Health
     runs-on: ubuntu-latest
-    needs: [deploy-backend, deploy-frontend]
+    needs: [deploy-backend]
+    if: always() && needs.deploy-backend.result == 'success'
 
     steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
       - name: Check backend health
         run: |
-          BACKEND_URL="${{ secrets.BACKEND_URL_DEV }}"
+          # Get Elastic Beanstalk environment URL
+          BACKEND_URL=$(aws elasticbeanstalk describe-environments \
+            --application-name ${{ env.EB_APPLICATION_NAME }} \
+            --environment-names ${{ env.EB_ENVIRONMENT_NAME }} \
+            --region ${{ env.AWS_REGION }} \
+            --query 'Environments[0].CNAME' \
+            --output text)
 
-          echo "Checking backend health at: $BACKEND_URL/health"
+          echo "Checking backend health at: http://$BACKEND_URL/health"
 
           # Wait a bit for service to be ready
           sleep 30
 
           # Try up to 5 times
           for i in {1..5}; do
-            if curl -f "$BACKEND_URL/health" || curl -f "$BACKEND_URL/docs"; then
+            if curl -f "http://$BACKEND_URL/health" || curl -f "http://$BACKEND_URL"; then
               echo "Backend is healthy!"
+              echo "Backend URL: http://$BACKEND_URL"
               exit 0
             fi
             echo "Attempt $i failed, retrying in 10s..."
@@ -206,12 +258,21 @@ jobs:
       - name: Deployment Summary
         if: success()
         run: |
+          # Get backend URL
+          BACKEND_URL=$(aws elasticbeanstalk describe-environments \
+            --application-name ${{ env.EB_APPLICATION_NAME }} \
+            --environment-names ${{ env.EB_ENVIRONMENT_NAME }} \
+            --region ${{ env.AWS_REGION }} \
+            --query 'Environments[0].CNAME' \
+            --output text)
+
           echo "========================================="
           echo "🚀 Deployment Successful!"
           echo "========================================="
           echo "Environment: ${{ needs.setup.outputs.environment }}"
           echo "Branch: ${{ github.event.inputs.branch }}"
           echo ""
-          echo "Backend: ${{ secrets.BACKEND_URL_DEV }}"
-          echo "Frontend: Check Amplify console for URL"
+          echo "Backend URL: http://$BACKEND_URL"
+          echo "API Docs: http://$BACKEND_URL/docs"
+          echo "Health Check: http://$BACKEND_URL/health"
           echo "========================================="
