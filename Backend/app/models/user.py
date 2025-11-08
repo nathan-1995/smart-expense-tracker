@@ -1,5 +1,6 @@
 from datetime import datetime
 from sqlalchemy import Column, String, Boolean, Integer, DateTime, Text, CheckConstraint
+from sqlalchemy.orm import relationship
 from sqlalchemy.event import listens_for
 
 from app.models.base import BaseModel
@@ -57,6 +58,10 @@ class User(BaseModel):
     last_login_at = Column(DateTime, nullable=True)
     failed_login_attempts = Column(Integer, default=0, nullable=False)
     locked_until = Column(DateTime, nullable=True)
+
+    # Relationships
+    clients = relationship("Client", back_populates="user", cascade="all, delete-orphan")
+    invoices = relationship("Invoice", back_populates="user", cascade="all, delete-orphan")
 
     # Constraints
     __table_args__ = (

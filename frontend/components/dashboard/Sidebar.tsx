@@ -11,6 +11,7 @@ import {
   FileText,
   Receipt,
   Settings,
+  Users,
 } from "lucide-react";
 
 const menuItems = [
@@ -20,15 +21,19 @@ const menuItems = [
     icon: LayoutDashboard,
   },
   {
+    href: "/invoices",
+    label: "Invoices",
+    icon: FileText,
+  },
+  {
+    href: "/clients",
+    label: "Clients",
+    icon: Users,
+  },
+  {
     href: "/dashboard/profile",
     label: "Profile",
     icon: User,
-  },
-  {
-    href: "/dashboard/invoices",
-    label: "Invoices",
-    icon: FileText,
-    disabled: true,
   },
   {
     href: "/dashboard/expenses",

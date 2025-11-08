@@ -16,6 +16,10 @@
   --color-border: #e4e4e7;
   --color-input: #e4e4e7;
   --color-ring: #3b82f6;
+  --color-popover: #ffffff;
+  --color-popover-foreground: #0a0a0a;
+  --color-accent: #f4f4f5;
+  --color-accent-foreground: #0a0a0a;
 }
 
 /* Plain CSS selector - actually changes CSS variables when .dark class is present */
@@ -31,4 +35,8 @@
   --color-border: #27272a;
   --color-input: #27272a;
   --color-ring: #1e40af;
+  --color-popover: #18181b;
+  --color-popover-foreground: #fafafa;
+  --color-accent: #27272a;
+  --color-accent-foreground: #fafafa;
 }
