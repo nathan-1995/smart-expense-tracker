@@ -21,7 +21,7 @@ on:
         default: 'deploy-dev'
 
 env:
-  AWS_REGION: eu-central-1  # Frankfurt region
+  AWS_REGION: us-east-1  # N. Virginia region
   ECR_REPOSITORY: fintrack-backend
   EB_APPLICATION_NAME: Fintrack-backend
   EB_ENVIRONMENT_NAME: Fintrack-backend-env
