@@ -135,8 +135,9 @@ export default function NewInvoicePage() {
       await invoiceApi.create(invoiceData);
       toast.success("Invoice created successfully");
       router.push("/invoices");
-    } catch (error: any) {
-      toast.error(error.response?.data?.detail || "Failed to create invoice");
+    } catch (error: unknown) {
+      const apiError = error as { response?: { data?: { detail?: string } } };
+      toast.error(apiError.response?.data?.detail || "Failed to create invoice");
     } finally {
       setLoading(false);
     }

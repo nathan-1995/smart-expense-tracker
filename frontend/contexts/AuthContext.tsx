@@ -12,6 +12,14 @@ import { authApi, userApi } from "@/lib/api";
 import { setTokens, removeTokens, getAccessToken, isTokenExpired } from "@/lib/auth";
 import { toast } from "sonner";
 
+interface ApiError {
+  response?: {
+    data?: {
+      detail?: string;
+    };
+  };
+}
+
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 interface AuthProviderProps {
@@ -54,8 +62,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       toast.success("Login successful!");
       router.push("/dashboard");
-    } catch (error: any) {
-      const message = error.response?.data?.detail || "Login failed. Please check your credentials.";
+    } catch (error: unknown) {
+      const apiError = error as ApiError;
+      const message = apiError?.response?.data?.detail || "Login failed. Please check your credentials.";
       toast.error(message);
       throw error;
     }
@@ -68,8 +77,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Auto-login after registration
       await login(data.email, data.password);
       toast.success("Registration successful!");
-    } catch (error: any) {
-      const message = error.response?.data?.detail || "Registration failed. Please try again.";
+    } catch (error: unknown) {
+      const apiError = error as ApiError;
+      const message = apiError?.response?.data?.detail || "Registration failed. Please try again.";
       toast.error(message);
       throw error;
     }
@@ -98,8 +108,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const updatedUser = await userApi.updateProfile(data);
       setUser(updatedUser);
       toast.success("Profile updated successfully!");
-    } catch (error: any) {
-      const message = error.response?.data?.detail || "Failed to update profile.";
+    } catch (error: unknown) {
+      const apiError = error as ApiError;
+      const message = apiError?.response?.data?.detail || "Failed to update profile.";
       toast.error(message);
       throw error;
     }

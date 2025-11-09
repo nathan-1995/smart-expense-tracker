@@ -58,8 +58,9 @@ export default function InvoiceDetailPage() {
       await invoiceApi.delete(invoiceId);
       toast.success("Invoice deleted successfully");
       router.push("/invoices");
-    } catch (error: any) {
-      toast.error(error.response?.data?.detail || "Failed to delete invoice");
+    } catch (error: unknown) {
+      const apiError = error as { response?: { data?: { detail?: string } } };
+      toast.error(apiError.response?.data?.detail || "Failed to delete invoice");
       setDeleting(false);
     }
   };
@@ -69,8 +70,9 @@ export default function InvoiceDetailPage() {
       const updated = await invoiceApi.updateStatus(invoiceId, newStatus);
       setInvoice(updated);
       toast.success(`Invoice status updated to ${newStatus}`);
-    } catch (error: any) {
-      toast.error(error.response?.data?.detail || "Failed to update status");
+    } catch (error: unknown) {
+      const apiError = error as { response?: { data?: { detail?: string } } };
+      toast.error(apiError.response?.data?.detail || "Failed to update status");
     }
   };
 
