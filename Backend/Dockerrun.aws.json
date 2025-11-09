@@ -1,7 +1,7 @@
 {
   "AWSEBDockerrunVersion": "1",
   "Image": {
-    "Name": "657681889386.dkr.ecr.eu-central-1.amazonaws.com/fintrack-backend:dev-latest",
+    "Name": "657681889386.dkr.ecr.us-east-1.amazonaws.com/fintrack-backend:dev-latest",
     "Update": "true"
   },
   "Ports": [
