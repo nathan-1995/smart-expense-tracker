@@ -55,8 +55,9 @@ export default function NewClientPage() {
       await clientApi.create(clientData);
       toast.success("Client created successfully");
       router.push("/clients");
-    } catch (error: any) {
-      toast.error(error.response?.data?.detail || "Failed to create client");
+    } catch (error: unknown) {
+      const apiError = error as { response?: { data?: { detail?: string } } };
+      toast.error(apiError.response?.data?.detail || "Failed to create client");
     } finally {
       setLoading(false);
     }

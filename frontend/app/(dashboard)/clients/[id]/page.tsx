@@ -102,8 +102,9 @@ export default function ClientDetailPage() {
       setClient(updated);
       setEditing(false);
       toast.success("Client updated successfully");
-    } catch (error: any) {
-      toast.error(error.response?.data?.detail || "Failed to update client");
+    } catch (error: unknown) {
+      const apiError = error as { response?: { data?: { detail?: string } } };
+      toast.error(apiError.response?.data?.detail || "Failed to update client");
     }
   };
 
@@ -117,8 +118,9 @@ export default function ClientDetailPage() {
       await clientApi.delete(clientId);
       toast.success("Client deleted successfully");
       router.push("/clients");
-    } catch (error: any) {
-      toast.error(error.response?.data?.detail || "Failed to delete client");
+    } catch (error: unknown) {
+      const apiError = error as { response?: { data?: { detail?: string } } };
+      toast.error(apiError.response?.data?.detail || "Failed to delete client");
       setDeleting(false);
     }
   };
