@@ -28,7 +28,9 @@ class Settings(BaseSettings):
     DEBUG: bool = True
 
     # CORS Configuration
-    BACKEND_CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:8000"]
+    BACKEND_CORS_ORIGINS: List[str] = ["http://localhost:3000", 
+                                       "http://localhost:8000",
+                                       "https://main.d3b3izli1zqily.amplifyapp.com"]
 
     # Account Security
     MAX_LOGIN_ATTEMPTS: int = 5
