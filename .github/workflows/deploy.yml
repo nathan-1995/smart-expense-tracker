@@ -23,8 +23,7 @@ on:
 env:
   AWS_REGION: us-east-1  # N. Virginia region
   ECR_REPOSITORY: fintrack-backend
-  EB_APPLICATION_NAME: Fintrack-backend
-  EB_ENVIRONMENT_NAME: Fintrack-backend-env
+  EB_APPLICATION_NAME: fintrack-backend
 
 jobs:
   # Determine environment variables based on inputs
@@ -35,6 +34,7 @@ jobs:
       environment: ${{ steps.set-env.outputs.environment }}
       app_runner_service: ${{ steps.set-env.outputs.app_runner_service }}
       amplify_app_id: ${{ steps.set-env.outputs.amplify_app_id }}
+      eb_environment: ${{ steps.set-env.outputs.eb_environment }}
 
     steps:
       - name: Set environment variables
@@ -44,10 +44,12 @@ jobs:
             echo "environment=production" >> $GITHUB_OUTPUT
             echo "app_runner_service=fintrack-backend-prod" >> $GITHUB_OUTPUT
             echo "amplify_app_id=${{ secrets.AMPLIFY_APP_ID_PROD }}" >> $GITHUB_OUTPUT
+            echo "eb_environment=Fintrack-backend-prod" >> $GITHUB_OUTPUT
           else
             echo "environment=development" >> $GITHUB_OUTPUT
             echo "app_runner_service=fintrack-backend-dev" >> $GITHUB_OUTPUT
             echo "amplify_app_id=${{ secrets.AMPLIFY_APP_ID_DEV }}" >> $GITHUB_OUTPUT
+            echo "eb_environment=Fintrack-backend-env" >> $GITHUB_OUTPUT
           fi
 
   # Build and deploy backend
@@ -120,7 +122,7 @@ jobs:
           # Deploy to environment
           aws elasticbeanstalk update-environment \
             --application-name ${{ env.EB_APPLICATION_NAME }} \
-            --environment-name ${{ env.EB_ENVIRONMENT_NAME }} \
+            --environment-name ${{ needs.setup.outputs.eb_environment }} \
             --version-label $VERSION_LABEL \
             --region ${{ env.AWS_REGION }}
 
@@ -131,7 +133,7 @@ jobs:
           echo "Waiting for Elastic Beanstalk environment to be ready..."
           aws elasticbeanstalk wait environment-updated \
             --application-name ${{ env.EB_APPLICATION_NAME }} \
-            --environment-names ${{ env.EB_ENVIRONMENT_NAME }} \
+            --environment-names ${{ needs.setup.outputs.eb_environment }} \
             --region ${{ env.AWS_REGION }}
           echo "Backend deployment completed!"
 
@@ -215,7 +217,7 @@ jobs:
   health-check:
     name: Verify Deployment Health
     runs-on: ubuntu-latest
-    needs: [deploy-backend]
+    needs: [setup, deploy-backend]
     if: always() && needs.deploy-backend.result == 'success'
 
     steps:
@@ -231,7 +233,7 @@ jobs:
           # Get Elastic Beanstalk environment URL
           BACKEND_URL=$(aws elasticbeanstalk describe-environments \
             --application-name ${{ env.EB_APPLICATION_NAME }} \
-            --environment-names ${{ env.EB_ENVIRONMENT_NAME }} \
+            --environment-names ${{ needs.setup.outputs.eb_environment }} \
             --region ${{ env.AWS_REGION }} \
             --query 'Environments[0].CNAME' \
             --output text)
@@ -261,7 +263,7 @@ jobs:
           # Get backend URL
           BACKEND_URL=$(aws elasticbeanstalk describe-environments \
             --application-name ${{ env.EB_APPLICATION_NAME }} \
-            --environment-names ${{ env.EB_ENVIRONMENT_NAME }} \
+            --environment-names ${{ needs.setup.outputs.eb_environment }} \
             --region ${{ env.AWS_REGION }} \
             --query 'Environments[0].CNAME' \
             --output text)
