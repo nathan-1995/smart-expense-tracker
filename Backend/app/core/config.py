@@ -29,10 +29,14 @@ class Settings(BaseSettings):
 
     # CORS Configuration
     BACKEND_CORS_ORIGINS: List[str] = [
-    # Amplify frontend (Prod + Dev)
-    "https://main.d3b3izli1zqily.amplifyapp.com", #these urls need to be changed when the app is deployed
-    "https://dev.d3b3izli1zqily.amplifyapp.com",
+    # Custom domains (Production)
+    "https://fintracker.cc",
+    "https://www.fintracker.cc",
 
+    # Custom domains (Development)
+    "https://dev.fintracker.cc",
+    "https://www.dev.fintracker.cc",
+    
     # Local dev
     "http://localhost:3000",
     "http://127.0.0.1:3000",
