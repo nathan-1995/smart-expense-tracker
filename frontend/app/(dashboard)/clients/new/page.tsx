@@ -234,7 +234,7 @@ export default function NewClientPage() {
                 Cancel
               </Button>
             </Link>
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" variant="success" disabled={loading}>
               {loading ? "Creating..." : "Create Client"}
             </Button>
           </div>

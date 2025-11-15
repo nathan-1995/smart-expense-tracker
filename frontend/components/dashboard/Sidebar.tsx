@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
 import { LogoutButton } from "@/components/auth/LogoutButton";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { SidebarMenuItem, type MenuItem } from "./SidebarMenuItem";
+import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard,
   User,
@@ -12,34 +12,63 @@ import {
   Receipt,
   Settings,
   Users,
+  Plus,
+  List,
+  Banknote,
+  ChevronRight,
 } from "lucide-react";
 
-const menuItems = [
+const menuItems: MenuItem[] = [
   {
     href: "/dashboard",
     label: "Dashboard",
     icon: LayoutDashboard,
   },
   {
-    href: "/invoices",
     label: "Invoices",
     icon: FileText,
+    children: [
+      {
+        href: "/invoices",
+        label: "View All",
+        icon: List,
+      },
+      {
+        href: "/invoices/new",
+        label: "Create Invoice",
+        icon: Plus,
+      },
+    ],
   },
   {
-    href: "/clients",
     label: "Clients",
     icon: Users,
-  },
-  {
-    href: "/dashboard/profile",
-    label: "Profile",
-    icon: User,
+    children: [
+      {
+        href: "/clients",
+        label: "View All",
+        icon: List,
+      },
+      {
+        href: "/clients/new",
+        label: "Add Client",
+        icon: Plus,
+      },
+    ],
   },
   {
     href: "/dashboard/expenses",
     label: "Expenses",
     icon: Receipt,
     disabled: true,
+  },
+];
+
+const settingsItems: MenuItem[] = [
+  {
+    href: "/dashboard/profile",
+    label: "Profile",
+    icon: User,
   },
   {
     href: "/dashboard/settings",
@@ -49,51 +78,125 @@ const menuItems = [
   },
 ];
 
-export function Sidebar() {
-  const pathname = usePathname();
+interface SidebarProps {
+  onNavigate?: () => void;
+  isCollapsed?: boolean;
+  onToggle?: () => void;
+}
+
+export function Sidebar({ onNavigate, isCollapsed = false, onToggle }: SidebarProps) {
+  const open = !isCollapsed;
 
   return (
-    <aside className="w-64 bg-card border-r border-border min-h-screen p-4">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-primary">FinTrack</h1>
-        <p className="text-sm text-muted-foreground">Invoice & Expense Manager</p>
-      </div>
-
-      <nav className="space-y-2">
-        {menuItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = pathname === item.href;
-
-          return (
-            <Link
-              key={item.href}
-              href={item.disabled ? "#" : item.href}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                isActive
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
-                item.disabled && "opacity-50 cursor-not-allowed"
-              )}
-              onClick={(e) => item.disabled && e.preventDefault()}
-            >
-              <Icon className="h-4 w-4" />
-              {item.label}
-              {item.disabled && (
-                <span className="ml-auto text-xs">(Soon)</span>
-              )}
-            </Link>
-          );
-        })}
-      </nav>
-
-      <div className="mt-auto pt-4 border-t border-border space-y-2">
-        <div className="flex items-center justify-between px-3 py-2">
-          <span className="text-sm font-medium text-muted-foreground">Theme</span>
-          <ThemeToggle />
+    <motion.nav
+      className="sticky top-0 h-screen border-r border-border bg-card p-2 flex flex-col overflow-hidden"
+      initial={false}
+      animate={{
+        width: open ? "256px" : "64px",
+      }}
+      transition={{
+        duration: 0.5,
+        ease: [0.4, 0, 0.2, 1],
+      }}
+    >
+      {/* Logo Branding */}
+      <div className="mb-3 border-b border-border pb-3">
+        <div className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-2 transition-colors hover:bg-accent overflow-hidden">
+          <div className="grid size-10 shrink-0 place-content-center rounded-md bg-primary">
+            <Banknote className="h-6 w-6 text-primary-foreground" />
+          </div>
+          <AnimatePresence>
+            {open && (
+              <motion.div
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                transition={{ duration: 0.3 }}
+                className="overflow-hidden"
+              >
+                <span className="block text-sm font-semibold whitespace-nowrap">FinTrack</span>
+                <span className="block text-xs text-muted-foreground whitespace-nowrap">Invoice & Expense Manager</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
-        <LogoutButton />
       </div>
-    </aside>
+
+      {/* Main Navigation */}
+      <div className="flex-1 overflow-y-auto space-y-1">
+        {menuItems.map((item) => (
+          <SidebarMenuItem
+            key={item.href || item.label}
+            item={item}
+            onNavigate={onNavigate}
+            isCollapsed={!open}
+          />
+        ))}
+
+        {/* Content Separator */}
+        {open && <hr className="my-4 border-border" />}
+
+        {/* Settings & Profile Section */}
+        {settingsItems.map((item) => (
+          <SidebarMenuItem
+            key={item.href}
+            item={item}
+            onNavigate={onNavigate}
+            isCollapsed={!open}
+          />
+        ))}
+      </div>
+
+      {/* Footer - Theme Toggle */}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="mt-auto border-t border-border pt-3"
+          >
+            <div className="flex items-center justify-between px-3 py-2">
+              <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">Theme</span>
+              <ThemeToggle />
+            </div>
+            <LogoutButton />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Toggle Button */}
+      {onToggle && (
+        <button
+          onClick={onToggle}
+          className="border-t border-border transition-colors hover:bg-accent"
+        >
+          <div className="flex items-center p-2 overflow-hidden">
+            <div className="grid size-10 shrink-0 place-content-center text-lg">
+              <ChevronRight
+                className={cn(
+                  "transition-transform duration-500",
+                  open && "rotate-180"
+                )}
+              />
+            </div>
+            <AnimatePresence>
+              {open && (
+                <motion.span
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -10 }}
+                  transition={{ duration: 0.3 }}
+                  className="text-xs font-medium whitespace-nowrap"
+                >
+                  Hide
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </div>
+        </button>
+      )}
+    </motion.nav>
   );
 }

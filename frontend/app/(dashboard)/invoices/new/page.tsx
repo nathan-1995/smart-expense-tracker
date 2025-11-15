@@ -260,7 +260,7 @@ export default function NewInvoicePage() {
                   <CardTitle>Invoice Items</CardTitle>
                   <CardDescription>Add items to your invoice</CardDescription>
                 </div>
-                <Button type="button" onClick={addItem} size="sm">
+                <Button type="button" variant="success" onClick={addItem} size="sm">
                   <Plus className="mr-2 h-4 w-4" />
                   Add Item
                 </Button>
@@ -411,7 +411,7 @@ export default function NewInvoicePage() {
                 Cancel
               </Button>
             </Link>
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" variant="success" disabled={loading}>
               {loading ? "Creating..." : "Create Invoice"}
             </Button>
           </div>

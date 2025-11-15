@@ -11,6 +11,8 @@
   --color-card-foreground: #0a0a0a;
   --color-primary: #3b82f6;
   --color-primary-foreground: #ffffff;
+  --color-success: #16a34a;
+  --color-success-foreground: #ffffff;
   --color-muted: #f4f4f5;
   --color-muted-foreground: #71717a;
   --color-border: #e4e4e7;
@@ -30,6 +32,8 @@
   --color-card-foreground: #fafafa;
   --color-primary: #60a5fa;
   --color-primary-foreground: #1e293b;
+  --color-success: #22c55e;
+  --color-success-foreground: #052e16;
   --color-muted: #27272a;
   --color-muted-foreground: #a1a1aa;
   --color-border: #27272a;

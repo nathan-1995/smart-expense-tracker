@@ -2,6 +2,7 @@
 
 import { useAuth } from "@/hooks/useAuth";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { HamburgerMenu } from "@/components/ui/hamburger-menu";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,7 +14,12 @@ import {
 import { LogOut, User } from "lucide-react";
 import Link from "next/link";
 
-export function Header() {
+interface HeaderProps {
+  onMenuClick?: () => void;
+  isSidebarOpen?: boolean;
+}
+
+export function Header({ onMenuClick, isSidebarOpen = false }: HeaderProps) {
   const { user, logout } = useAuth();
 
   const getInitials = () => {
@@ -31,17 +37,28 @@ export function Header() {
   return (
     <header className="bg-card border-b border-border px-6 py-4">
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-semibold">Welcome back, {user?.first_name || "User"}!</h2>
-          <p className="text-sm text-muted-foreground">
-            Manage your invoices and expenses
-          </p>
+        {/* Animated Hamburger Menu (Mobile Only) */}
+        <div className="flex items-center gap-4">
+          <div className="md:hidden">
+            <HamburgerMenu
+              isOpen={isSidebarOpen}
+              onClick={onMenuClick}
+              className="text-foreground"
+            />
+          </div>
+
+          <div>
+            <h2 className="text-xl font-semibold">Welcome back, {user?.first_name || "User"}!</h2>
+            <p className="text-sm text-muted-foreground hidden sm:block">
+              Manage your invoices and expenses
+            </p>
+          </div>
         </div>
 
         <DropdownMenu>
           <DropdownMenuTrigger className="focus:outline-none">
             <div className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-              <div className="text-right">
+              <div className="text-right hidden sm:block">
                 <p className="text-sm font-medium">{getFullName()}</p>
                 <p className="text-xs text-muted-foreground">{user?.email}</p>
               </div>
