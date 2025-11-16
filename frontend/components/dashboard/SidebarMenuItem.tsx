@@ -39,7 +39,7 @@ export function SidebarMenuItem({ item, onNavigate, isCollapsed = false }: Sideb
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CollapsibleTrigger
           className={cn(
-            "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors w-full",
+            "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors w-full overflow-hidden",
             isActive
               ? "bg-primary text-primary-foreground"
               : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
@@ -48,8 +48,8 @@ export function SidebarMenuItem({ item, onNavigate, isCollapsed = false }: Sideb
           disabled={item.disabled}
         >
           <Icon className="h-4 w-4 shrink-0" />
-          <span className="flex-1 text-left">{item.label}</span>
-          {item.disabled && <span className="text-xs">(Soon)</span>}
+          <span className="flex-1 text-left whitespace-nowrap overflow-hidden text-ellipsis">{item.label}</span>
+          {item.disabled && <span className="text-xs whitespace-nowrap">(Soon)</span>}
           {!item.disabled && (
             isOpen ? (
               <ChevronDown className="h-4 w-4 shrink-0" />
@@ -99,7 +99,7 @@ export function SidebarMenuItem({ item, onNavigate, isCollapsed = false }: Sideb
     <Link
       href={item.disabled ? "#" : item.href!}
       className={cn(
-        "flex items-center rounded-lg text-sm font-medium transition-colors",
+        "flex items-center rounded-lg text-sm font-medium transition-colors overflow-hidden",
         isCollapsed ? "justify-center p-3" : "gap-3 px-3 py-2",
         pathname === item.href
           ? "bg-primary text-primary-foreground"
@@ -118,10 +118,10 @@ export function SidebarMenuItem({ item, onNavigate, isCollapsed = false }: Sideb
       <Icon className={cn("shrink-0", isCollapsed ? "h-5 w-5" : "h-4 w-4")} />
       {!isCollapsed && (
         <>
-          <span className="flex-1">{item.label}</span>
-          {item.disabled && <span className="text-xs">(Soon)</span>}
+          <span className="flex-1 whitespace-nowrap overflow-hidden text-ellipsis">{item.label}</span>
+          {item.disabled && <span className="text-xs whitespace-nowrap">(Soon)</span>}
           {item.badge && (
-            <span className="ml-auto text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+            <span className="ml-auto text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full whitespace-nowrap">
               {item.badge}
             </span>
           )}

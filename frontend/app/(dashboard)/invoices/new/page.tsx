@@ -43,8 +43,33 @@ export default function NewInvoicePage() {
   ]);
 
   useEffect(() => {
-    loadClients();
+    let isSubscribed = true;
+
+    const fetchData = async () => {
+      try {
+        const response = await clientApi.list(1, 100);
+        if (isSubscribed) {
+          setClients(response.clients);
+
+          // Show helpful message if no clients exist
+          if (response.clients.length === 0) {
+            toast.info("No clients found. Create a client first to create invoices.");
+          }
+        }
+      } catch (error) {
+        if (isSubscribed) {
+          console.error("Error loading clients:", error);
+          toast.error("Failed to load clients. Please try again.");
+        }
+      }
+    };
+
+    fetchData();
     generateInvoiceNumber();
+
+    return () => {
+      isSubscribed = false;
+    };
   }, []);
 
   const loadClients = async () => {
@@ -52,7 +77,8 @@ export default function NewInvoicePage() {
       const response = await clientApi.list(1, 100);
       setClients(response.clients);
     } catch (error) {
-      toast.error("Failed to load clients");
+      console.error("Error loading clients:", error);
+      toast.error("Failed to load clients. Please try again.");
     }
   };
 
