@@ -74,9 +74,18 @@ apiClient.interceptors.response.use(
         // Refresh failed, remove tokens and redirect to login
         removeTokens();
         if (typeof window !== "undefined") {
-          window.location.href = "/login";
+          // Force a hard redirect to login page
+          window.location.replace("/login");
         }
         return Promise.reject(refreshError);
+      }
+    }
+
+    // If no refresh token available, clear tokens and redirect
+    if (error.response?.status === 401 && !getRefreshToken()) {
+      removeTokens();
+      if (typeof window !== "undefined") {
+        window.location.replace("/login");
       }
     }
 

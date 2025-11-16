@@ -26,8 +26,12 @@ export default function ClientsPage() {
       const response = await clientApi.list(page, 20);
       setClients(response.clients);
       setTotalPages(response.total_pages);
-    } catch (error) {
-      toast.error("Failed to load clients");
+    } catch (error: any) {
+      // Only show error toast for actual HTTP errors, not empty data
+      if (error?.response?.status && error.response.status !== 404) {
+        const message = error?.response?.data?.detail || "Failed to load clients";
+        toast.error(message);
+      }
     } finally {
       setLoading(false);
     }
@@ -43,7 +47,7 @@ export default function ClientsPage() {
           </p>
         </div>
         <Link href="/clients/new">
-          <Button>
+          <Button variant="success">
             <Plus className="mr-2 h-4 w-4" />
             New Client
           </Button>

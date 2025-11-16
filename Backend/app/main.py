@@ -9,7 +9,7 @@ app = FastAPI(
     title=settings.PROJECT_NAME,
     debug=settings.DEBUG,
     description="FinTrack Invoice and Expense Management API",
-    version="1.0.0",
+    version="1.0.1",
 )
 
 # Configure CORS
@@ -28,7 +28,7 @@ async def root():
     return {
         "message": "FinTrack API",
         "status": "running",
-        "version": "1.0.0",
+        "version": "1.0.1",
     }
 
 

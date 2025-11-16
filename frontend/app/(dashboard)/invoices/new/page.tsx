@@ -43,8 +43,33 @@ export default function NewInvoicePage() {
   ]);
 
   useEffect(() => {
-    loadClients();
+    let isSubscribed = true;
+
+    const fetchData = async () => {
+      try {
+        const response = await clientApi.list(1, 100);
+        if (isSubscribed) {
+          setClients(response.clients);
+
+          // Show helpful message if no clients exist
+          if (response.clients.length === 0) {
+            toast.info("No clients found. Create a client first to create invoices.");
+          }
+        }
+      } catch (error) {
+        if (isSubscribed) {
+          console.error("Error loading clients:", error);
+          toast.error("Failed to load clients. Please try again.");
+        }
+      }
+    };
+
+    fetchData();
     generateInvoiceNumber();
+
+    return () => {
+      isSubscribed = false;
+    };
   }, []);
 
   const loadClients = async () => {
@@ -52,7 +77,8 @@ export default function NewInvoicePage() {
       const response = await clientApi.list(1, 100);
       setClients(response.clients);
     } catch (error) {
-      toast.error("Failed to load clients");
+      console.error("Error loading clients:", error);
+      toast.error("Failed to load clients. Please try again.");
     }
   };
 
@@ -260,7 +286,7 @@ export default function NewInvoicePage() {
                   <CardTitle>Invoice Items</CardTitle>
                   <CardDescription>Add items to your invoice</CardDescription>
                 </div>
-                <Button type="button" onClick={addItem} size="sm">
+                <Button type="button" variant="success" onClick={addItem} size="sm">
                   <Plus className="mr-2 h-4 w-4" />
                   Add Item
                 </Button>
@@ -411,7 +437,7 @@ export default function NewInvoicePage() {
                 Cancel
               </Button>
             </Link>
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" variant="success" disabled={loading}>
               {loading ? "Creating..." : "Create Invoice"}
             </Button>
           </div>

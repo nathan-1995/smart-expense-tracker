@@ -52,7 +52,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     loadUser();
   }, []);
 
-  const login = async (email: string, password: string): Promise<void> => {
+  const login = async (email: string, password: string, suppressToast?: boolean): Promise<void> => {
     try {
       const tokenData = await authApi.login({ email, password });
       setTokens(tokenData.access_token, tokenData.refresh_token);
@@ -60,7 +60,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const userData = await userApi.getProfile();
       setUser(userData);
 
-      toast.success("Login successful!");
+      if (!suppressToast) {
+        toast.success("Login successful!");
+      }
       router.push("/dashboard");
     } catch (error: unknown) {
       const apiError = error as ApiError;
@@ -75,7 +77,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       await authApi.register(data);
 
       // Auto-login after registration
-      await login(data.email, data.password);
+      await login(data.email, data.password, true);
       toast.success("Registration successful!");
     } catch (error: unknown) {
       const apiError = error as ApiError;
