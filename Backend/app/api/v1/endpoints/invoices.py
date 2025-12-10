@@ -21,7 +21,7 @@ from app.repositories.client_repository import ClientRepository
 router = APIRouter()
 
 
-@router.post("/", response_model=InvoiceResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=InvoiceResponse, status_code=status.HTTP_201_CREATED)
 async def create_invoice(
     invoice_data: InvoiceCreate,
     db: AsyncSession = Depends(get_db),
@@ -55,7 +55,7 @@ async def create_invoice(
     return InvoiceResponse.model_validate(invoice)
 
 
-@router.get("/", response_model=InvoiceListResponse)
+@router.get("", response_model=InvoiceListResponse)
 async def list_invoices(
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(50, ge=1, le=100, description="Items per page"),
