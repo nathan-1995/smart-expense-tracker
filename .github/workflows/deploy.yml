@@ -100,7 +100,7 @@ jobs:
       - name: Generate deployment package
         run: |
           cd Backend
-          zip -r deploy.zip Dockerrun.aws.json .ebextensions/
+          zip -r deploy.zip Dockerrun.aws.json .ebextensions
 
       - name: Deploy to Elastic Beanstalk
         run: |
