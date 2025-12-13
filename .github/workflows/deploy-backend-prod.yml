@@ -1,0 +1,161 @@
+name: Deploy Backend to Production
+
+on:
+  workflow_dispatch:
+
+env:
+  AWS_REGION: us-east-1  # N. Virginia region
+  ECR_REPOSITORY: fintrack-backend
+  EB_APPLICATION_NAME: fintrack-backend
+  EB_ENVIRONMENT_NAME: Fintrack-backend-prod
+  ENVIRONMENT: production
+  BRANCH: main
+
+jobs:
+  deploy-backend:
+    name: Deploy Backend to Elastic Beanstalk (Production)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          cd Backend
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:${{ env.ENVIRONMENT }}-latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ env.ENVIRONMENT }}-latest
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      - name: Update Dockerrun.aws.json with new image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          cd Backend
+          sed -i "s|\"Name\": \".*\"|\"Name\": \"$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG\"|" Dockerrun.aws.json
+          cat Dockerrun.aws.json
+
+      - name: Generate deployment package
+        run: |
+          cd Backend
+          zip -r deploy.zip Dockerrun.aws.json .ebextensions .platform
+
+      - name: Deploy to Elastic Beanstalk
+        run: |
+          # Create application version
+          VERSION_LABEL="${{ env.BRANCH }}-${{ github.sha }}-$(date +%s)"
+          S3_BUCKET="elasticbeanstalk-${{ env.AWS_REGION }}-${{ secrets.AWS_ACCOUNT_ID }}"
+          S3_KEY="${{ env.EB_APPLICATION_NAME }}/$VERSION_LABEL.zip"
+
+          # Upload to S3
+          aws s3 cp Backend/deploy.zip s3://$S3_BUCKET/$S3_KEY
+
+          # Create application version
+          aws elasticbeanstalk create-application-version \
+            --application-name ${{ env.EB_APPLICATION_NAME }} \
+            --version-label $VERSION_LABEL \
+            --source-bundle S3Bucket=$S3_BUCKET,S3Key=$S3_KEY \
+            --region ${{ env.AWS_REGION }}
+
+          # Deploy to environment
+          aws elasticbeanstalk update-environment \
+            --application-name ${{ env.EB_APPLICATION_NAME }} \
+            --environment-name ${{ env.EB_ENVIRONMENT_NAME }} \
+            --version-label $VERSION_LABEL \
+            --region ${{ env.AWS_REGION }}
+
+          echo "Deployment initiated with version: $VERSION_LABEL"
+
+      - name: Wait for deployment
+        run: |
+          echo "Waiting for Elastic Beanstalk environment to be ready..."
+          aws elasticbeanstalk wait environment-updated \
+            --application-name ${{ env.EB_APPLICATION_NAME }} \
+            --environment-names ${{ env.EB_ENVIRONMENT_NAME }} \
+            --region ${{ env.AWS_REGION }}
+          echo "Backend deployment completed!"
+
+  health-check:
+    name: Verify Deployment Health
+    runs-on: ubuntu-latest
+    needs: deploy-backend
+    if: always() && needs.deploy-backend.result == 'success'
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Check backend health
+        run: |
+          # Get Elastic Beanstalk environment URL
+          BACKEND_URL=$(aws elasticbeanstalk describe-environments \
+            --application-name ${{ env.EB_APPLICATION_NAME }} \
+            --environment-names ${{ env.EB_ENVIRONMENT_NAME }} \
+            --region ${{ env.AWS_REGION }} \
+            --query 'Environments[0].CNAME' \
+            --output text)
+
+          echo "Checking backend health at: http://$BACKEND_URL/health"
+
+          # Wait a bit for service to be ready
+          sleep 30
+
+          # Try up to 5 times
+          for i in {1..5}; do
+            if curl -f "http://$BACKEND_URL/health" || curl -f "http://$BACKEND_URL"; then
+              echo "Backend is healthy!"
+              echo "Backend URL: http://$BACKEND_URL"
+              exit 0
+            fi
+            echo "Attempt $i failed, retrying in 10s..."
+            sleep 10
+          done
+
+          echo "Backend health check failed after 5 attempts"
+          exit 1
+
+      - name: Deployment Summary
+        if: success()
+        run: |
+          # Get backend URL
+          BACKEND_URL=$(aws elasticbeanstalk describe-environments \
+            --application-name ${{ env.EB_APPLICATION_NAME }} \
+            --environment-names ${{ env.EB_ENVIRONMENT_NAME }} \
+            --region ${{ env.AWS_REGION }} \
+            --query 'Environments[0].CNAME' \
+            --output text)
+
+          echo "========================================="
+          echo "🚀 Deployment Successful!"
+          echo "========================================="
+          echo "Environment: ${{ env.ENVIRONMENT }}"
+          echo "Branch: ${{ env.BRANCH }}"
+          echo ""
+          echo "Backend URL: http://$BACKEND_URL"
+          echo "API Docs: http://$BACKEND_URL/docs"
+          echo "Health Check: http://$BACKEND_URL/health"
+          echo "========================================="
