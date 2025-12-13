@@ -144,3 +144,72 @@ async def logout() -> dict:
         }
     """
     return {"message": "Successfully logged out"}
+
+
+@router.post("/verify-email", response_model=UserResponse)
+async def verify_email(
+    token: str,
+    db: AsyncSession = Depends(get_db)
+) -> UserResponse:
+    """
+    Verify user's email address using verification token.
+
+    Args:
+        token: Email verification token (from email link)
+        db: Database session (injected)
+
+    Returns:
+        Verified user data
+
+    Raises:
+        400: Invalid or expired token
+        404: User not found
+
+    Example:
+        POST /api/v1/auth/verify-email?token=abc123...
+
+        Response:
+        {
+            "id": "uuid",
+            "email": "user@example.com",
+            "first_name": "John",
+            "last_name": "Doe",
+            "is_verified": true
+        }
+    """
+    user = await AuthService.verify_email(db, token)
+    return UserResponse.model_validate(user)
+
+
+@router.post("/resend-verification", status_code=status.HTTP_200_OK)
+async def resend_verification(
+    email: str,
+    db: AsyncSession = Depends(get_db)
+) -> dict:
+    """
+    Resend verification email to user.
+
+    Args:
+        email: User's email address
+        db: Database session (injected)
+
+    Returns:
+        Success message
+
+    Raises:
+        400: Email already verified
+        404: User not found
+
+    Example:
+        POST /api/v1/auth/resend-verification?email=user@example.com
+
+        Response:
+        {
+            "message": "Verification email sent successfully"
+        }
+    """
+    success = await AuthService.resend_verification_email(db, email)
+    if success:
+        return {"message": "Verification email sent successfully"}
+    else:
+        return {"message": "Failed to send verification email", "success": False}

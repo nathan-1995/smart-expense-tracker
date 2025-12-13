@@ -16,7 +16,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Loader2 } from "lucide-react";
+import { Loader2, Mail, CheckCircle2 } from "lucide-react";
 
 const registerSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -33,6 +33,8 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export function RegisterForm() {
   const [isLoading, setIsLoading] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState("");
   const { register } = useAuth();
 
   const form = useForm<RegisterFormValues>({
@@ -49,12 +51,56 @@ export function RegisterForm() {
     setIsLoading(true);
     try {
       await register(data);
+      setRegisteredEmail(data.email);
+      setShowSuccess(true);
     } catch (error) {
       // Error handling is done in AuthContext
     } finally {
       setIsLoading(false);
     }
   };
+
+  if (showSuccess) {
+    return (
+      <div className="w-full">
+        <div className="text-center space-y-6">
+          <div className="flex justify-center">
+            <div className="rounded-full bg-green-100 dark:bg-green-900/20 p-3">
+              <CheckCircle2 className="h-12 w-12 text-green-600 dark:text-green-400" />
+            </div>
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight">Check your email</h2>
+            <p className="text-muted-foreground mt-2">
+              We've sent a verification link to
+            </p>
+            <p className="text-foreground font-medium mt-1">{registeredEmail}</p>
+          </div>
+          <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+            <div className="flex items-start gap-3">
+              <Mail className="h-5 w-5 text-muted-foreground mt-0.5" />
+              <div className="text-sm text-left">
+                <p className="font-medium text-foreground">Next steps:</p>
+                <ol className="list-decimal list-inside text-muted-foreground mt-2 space-y-1">
+                  <li>Check your email inbox (and spam folder)</li>
+                  <li>Click the verification link in the email</li>
+                  <li>Log in with your credentials</li>
+                </ol>
+              </div>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            The verification link will expire in 24 hours
+          </p>
+          <div className="pt-2">
+            <Link href="/login">
+              <Button className="w-full">Go to Login</Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full">

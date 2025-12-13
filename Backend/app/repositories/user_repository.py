@@ -216,3 +216,79 @@ class UserRepository:
         await db.refresh(user)
 
         return user
+
+    @staticmethod
+    async def set_verification_token(
+        db: AsyncSession,
+        user_id: UUID,
+        token: str,
+        expires_at: datetime
+    ) -> Optional[User]:
+        """
+        Set email verification token for user.
+
+        Args:
+            db: Database session
+            user_id: User UUID
+            token: Verification token
+            expires_at: Token expiration datetime
+
+        Returns:
+            Updated User object or None if not found
+        """
+        user = await UserRepository.get_by_id(db, user_id)
+        if not user:
+            return None
+
+        user.verification_token = token
+        user.verification_token_expires_at = expires_at
+        user.updated_at = datetime.utcnow()
+
+        await db.commit()
+        await db.refresh(user)
+
+        return user
+
+    @staticmethod
+    async def get_by_verification_token(db: AsyncSession, token: str) -> Optional[User]:
+        """
+        Get user by verification token.
+
+        Args:
+            db: Database session
+            token: Verification token
+
+        Returns:
+            User object or None if not found
+        """
+        result = await db.execute(
+            select(User).filter(User.verification_token == token)
+        )
+        return result.scalar_one_or_none()
+
+    @staticmethod
+    async def verify_email(db: AsyncSession, user_id: UUID) -> Optional[User]:
+        """
+        Mark user's email as verified.
+
+        Args:
+            db: Database session
+            user_id: User UUID
+
+        Returns:
+            Updated User object or None if not found
+        """
+        user = await UserRepository.get_by_id(db, user_id)
+        if not user:
+            return None
+
+        user.is_verified = True
+        user.verified_at = datetime.utcnow()
+        user.verification_token = None
+        user.verification_token_expires_at = None
+        user.updated_at = datetime.utcnow()
+
+        await db.commit()
+        await db.refresh(user)
+
+        return user

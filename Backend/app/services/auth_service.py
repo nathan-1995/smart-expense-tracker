@@ -15,6 +15,8 @@ from app.core.security import (
     decode_token,
     verify_token_type,
 )
+from app.core.email import EmailService
+from app.core.config import settings
 from app.core.exceptions import (
     InvalidCredentialsError,
     AccountLockedError,
@@ -32,7 +34,7 @@ class AuthService:
     @staticmethod
     async def register_user(db: AsyncSession, user_data: UserCreate) -> User:
         """
-        Register a new user.
+        Register a new user and send verification email.
 
         Args:
             db: Database session
@@ -51,6 +53,21 @@ class AuthService:
 
         # Create user
         user = await UserRepository.create(db, user_data)
+
+        # Generate verification token
+        token = EmailService.generate_verification_token()
+        expires_at = EmailService.get_verification_token_expiry()
+
+        # Store verification token
+        await UserRepository.set_verification_token(db, user.id, token, expires_at)
+
+        # Send verification email
+        EmailService.send_verification_email(
+            to_email=user.email,
+            first_name=user.first_name or "there",
+            verification_token=token,
+            frontend_url=settings.FRONTEND_URL
+        )
 
         return user
 
@@ -246,3 +263,79 @@ class AuthService:
         updated_user = await UserRepository.change_password(db, user_id, new_password)
 
         return updated_user
+
+    @staticmethod
+    async def verify_email(db: AsyncSession, token: str) -> User:
+        """
+        Verify user's email using verification token.
+
+        Args:
+            db: Database session
+            token: Verification token
+
+        Returns:
+            Verified User object
+
+        Raises:
+            InvalidTokenError: If token is invalid or expired
+            UserNotFoundError: If user not found
+        """
+        # Get user by token
+        user = await UserRepository.get_by_verification_token(db, token)
+        if not user:
+            raise InvalidTokenError(detail="Invalid verification token")
+
+        # Check if already verified
+        if user.is_verified:
+            raise InvalidTokenError(detail="Email already verified")
+
+        # Check if token expired
+        if user.verification_token_expires_at and user.verification_token_expires_at < datetime.utcnow():
+            raise InvalidTokenError(detail="Verification token has expired")
+
+        # Mark email as verified
+        verified_user = await UserRepository.verify_email(db, user.id)
+
+        return verified_user
+
+    @staticmethod
+    async def resend_verification_email(db: AsyncSession, email: str) -> bool:
+        """
+        Resend verification email to user.
+
+        Args:
+            db: Database session
+            email: User's email address
+
+        Returns:
+            bool: True if email sent successfully
+
+        Raises:
+            UserNotFoundError: If user not found
+            InvalidTokenError: If user already verified
+        """
+        # Get user by email
+        user = await UserRepository.get_by_email(db, email)
+        if not user:
+            raise UserNotFoundError()
+
+        # Check if already verified
+        if user.is_verified:
+            raise InvalidTokenError(detail="Email already verified")
+
+        # Generate new verification token
+        token = EmailService.generate_verification_token()
+        expires_at = EmailService.get_verification_token_expiry()
+
+        # Update verification token
+        await UserRepository.set_verification_token(db, user.id, token, expires_at)
+
+        # Send verification email
+        success = EmailService.send_verification_email(
+            to_email=user.email,
+            first_name=user.first_name or "there",
+            verification_token=token,
+            frontend_url=settings.FRONTEND_URL
+        )
+
+        return success
