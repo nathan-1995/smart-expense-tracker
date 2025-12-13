@@ -49,6 +49,16 @@ class Settings(BaseSettings):
     MAX_LOGIN_ATTEMPTS: int = 5
     ACCOUNT_LOCKOUT_DURATION_MINUTES: int = 30
 
+    # Email Configuration (AWS SES)
+    SMTP_HOST: str = "email-smtp.us-east-1.amazonaws.com"
+    SMTP_PORT: int = 587
+    SMTP_USERNAME: str = ""
+    SMTP_PASSWORD: str = ""
+    FROM_EMAIL: str = "noreply@fintracker.cc"
+
+    # Frontend URL (for email links)
+    FRONTEND_URL: str = "https://fintracker.cc"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

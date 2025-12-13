@@ -54,6 +54,11 @@ class User(BaseModel):
     subscription_status = Column(String(50), default="active", nullable=True)
     trial_ends_at = Column(DateTime, nullable=True)
 
+    # Email Verification
+    verification_token = Column(String(255), nullable=True, unique=True, index=True)
+    verification_token_expires_at = Column(DateTime, nullable=True)
+    verified_at = Column(DateTime, nullable=True)
+
     # Security & Login Tracking
     last_login_at = Column(DateTime, nullable=True)
     failed_login_attempts = Column(Integer, default=0, nullable=False)
