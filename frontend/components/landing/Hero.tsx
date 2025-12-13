@@ -52,7 +52,7 @@ export function Hero() {
               className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 leading-[1.1] tracking-tight"
               variants={fadeIn}
             >
-              <span className="text-primary">Master Your Money,</span>
+              <span className="bg-gradient-to-r from-accent-emerald to-secondary bg-clip-text text-transparent">Master Your Money,</span>
               <br />
               <span className="bg-gradient-to-r from-accent-emerald to-secondary bg-clip-text text-transparent">
                 Grow Your Business
