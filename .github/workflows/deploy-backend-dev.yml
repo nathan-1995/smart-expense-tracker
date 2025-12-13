@@ -1,68 +1,26 @@
-name: Deploy to AWS
+name: Deploy Backend to Dev
 
 on:
   workflow_dispatch:
-    inputs:
-      branch:
-        description: 'Branch to deploy'
-        required: true
-        type: choice
-        options:
-          - dev
-          - main
-        default: 'dev'
-      environment:
-        description: 'Deployment environment'
-        required: true
-        type: choice
-        options:
-          - deploy-dev
-          - deploy-prod
-        default: 'deploy-dev'
 
 env:
   AWS_REGION: us-east-1  # N. Virginia region
   ECR_REPOSITORY: fintrack-backend
   EB_APPLICATION_NAME: fintrack-backend
+  EB_ENVIRONMENT_NAME: Fintrack-backend-env
+  ENVIRONMENT: development
+  BRANCH: dev
 
 jobs:
-  # Determine environment variables based on inputs
-  setup:
-    name: Setup Environment
-    runs-on: ubuntu-latest
-    outputs:
-      environment: ${{ steps.set-env.outputs.environment }}
-      app_runner_service: ${{ steps.set-env.outputs.app_runner_service }}
-      amplify_app_id: ${{ steps.set-env.outputs.amplify_app_id }}
-      eb_environment: ${{ steps.set-env.outputs.eb_environment }}
-
-    steps:
-      - name: Set environment variables
-        id: set-env
-        run: |
-          if [[ "${{ github.event.inputs.environment }}" == "deploy-prod" ]]; then
-            echo "environment=production" >> $GITHUB_OUTPUT
-            echo "app_runner_service=fintrack-backend-prod" >> $GITHUB_OUTPUT
-            echo "amplify_app_id=${{ secrets.AMPLIFY_APP_ID_PROD }}" >> $GITHUB_OUTPUT
-            echo "eb_environment=Fintrack-backend-prod" >> $GITHUB_OUTPUT
-          else
-            echo "environment=development" >> $GITHUB_OUTPUT
-            echo "app_runner_service=fintrack-backend-dev" >> $GITHUB_OUTPUT
-            echo "amplify_app_id=${{ secrets.AMPLIFY_APP_ID_DEV }}" >> $GITHUB_OUTPUT
-            echo "eb_environment=Fintrack-backend-env" >> $GITHUB_OUTPUT
-          fi
-
-  # Build and deploy backend
   deploy-backend:
-    name: Deploy Backend to Elastic Beanstalk
+    name: Deploy Backend to Elastic Beanstalk (Dev)
     runs-on: ubuntu-latest
-    needs: setup
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.inputs.branch }}
+          ref: dev
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -83,9 +41,9 @@ jobs:
         run: |
           cd Backend
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:${{ needs.setup.outputs.environment }}-latest
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:${{ env.ENVIRONMENT }}-latest
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ needs.setup.outputs.environment }}-latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ env.ENVIRONMENT }}-latest
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
       - name: Update Dockerrun.aws.json with new image
@@ -105,7 +63,7 @@ jobs:
       - name: Deploy to Elastic Beanstalk
         run: |
           # Create application version
-          VERSION_LABEL="${{ github.event.inputs.branch }}-${{ github.sha }}-$(date +%s)"
+          VERSION_LABEL="${{ env.BRANCH }}-${{ github.sha }}-$(date +%s)"
           S3_BUCKET="elasticbeanstalk-${{ env.AWS_REGION }}-${{ secrets.AWS_ACCOUNT_ID }}"
           S3_KEY="${{ env.EB_APPLICATION_NAME }}/$VERSION_LABEL.zip"
 
@@ -122,7 +80,7 @@ jobs:
           # Deploy to environment
           aws elasticbeanstalk update-environment \
             --application-name ${{ env.EB_APPLICATION_NAME }} \
-            --environment-name ${{ needs.setup.outputs.eb_environment }} \
+            --environment-name ${{ env.EB_ENVIRONMENT_NAME }} \
             --version-label $VERSION_LABEL \
             --region ${{ env.AWS_REGION }}
 
@@ -133,90 +91,14 @@ jobs:
           echo "Waiting for Elastic Beanstalk environment to be ready..."
           aws elasticbeanstalk wait environment-updated \
             --application-name ${{ env.EB_APPLICATION_NAME }} \
-            --environment-names ${{ needs.setup.outputs.eb_environment }} \
+            --environment-names ${{ env.EB_ENVIRONMENT_NAME }} \
             --region ${{ env.AWS_REGION }}
           echo "Backend deployment completed!"
 
-  # Deploy frontend to Amplify
-  deploy-frontend:
-    name: Deploy Frontend to AWS Amplify
-    runs-on: ubuntu-latest
-    needs: setup
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.inputs.branch }}
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Trigger Amplify deployment
-        run: |
-          BRANCH_NAME="${{ github.event.inputs.branch }}"
-
-          # Start a new deployment
-          JOB_ID=$(aws amplify start-job \
-            --app-id ${{ needs.setup.outputs.amplify_app_id }} \
-            --branch-name $BRANCH_NAME \
-            --job-type RELEASE \
-            --query 'jobSummary.jobId' \
-            --output text)
-
-          echo "Started Amplify deployment with Job ID: $JOB_ID"
-          echo "Monitor progress at: https://console.aws.amazon.com/amplify/home?region=${{ env.AWS_REGION }}#/${{ needs.setup.outputs.amplify_app_id }}"
-
-      - name: Get Amplify App URL
-        id: get-url
-        run: |
-          APP_URL=$(aws amplify get-app \
-            --app-id ${{ needs.setup.outputs.amplify_app_id }} \
-            --query 'app.defaultDomain' \
-            --output text)
-
-          echo "Frontend URL: https://${{ github.event.inputs.branch }}.$APP_URL"
-          echo "url=https://${{ github.event.inputs.branch }}.$APP_URL" >> $GITHUB_OUTPUT
-
-  # Run database migrations (optional - only if using RDS)
-  migrate-database:
-    name: Run Database Migrations
-    runs-on: ubuntu-latest
-    needs: [setup, deploy-backend]
-    if: false  # Set to true when you have RDS set up
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.inputs.branch }}
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install dependencies
-        run: |
-          cd Backend
-          pip install -r requirements.txt
-
-      - name: Run Alembic migrations
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL_DEV }}
-        run: |
-          cd Backend
-          alembic upgrade head
-
-  # Health check
   health-check:
     name: Verify Deployment Health
     runs-on: ubuntu-latest
-    needs: [setup, deploy-backend]
+    needs: deploy-backend
     if: always() && needs.deploy-backend.result == 'success'
 
     steps:
@@ -232,7 +114,7 @@ jobs:
           # Get Elastic Beanstalk environment URL
           BACKEND_URL=$(aws elasticbeanstalk describe-environments \
             --application-name ${{ env.EB_APPLICATION_NAME }} \
-            --environment-names ${{ needs.setup.outputs.eb_environment }} \
+            --environment-names ${{ env.EB_ENVIRONMENT_NAME }} \
             --region ${{ env.AWS_REGION }} \
             --query 'Environments[0].CNAME' \
             --output text)
@@ -262,7 +144,7 @@ jobs:
           # Get backend URL
           BACKEND_URL=$(aws elasticbeanstalk describe-environments \
             --application-name ${{ env.EB_APPLICATION_NAME }} \
-            --environment-names ${{ needs.setup.outputs.eb_environment }} \
+            --environment-names ${{ env.EB_ENVIRONMENT_NAME }} \
             --region ${{ env.AWS_REGION }} \
             --query 'Environments[0].CNAME' \
             --output text)
@@ -270,8 +152,8 @@ jobs:
           echo "========================================="
           echo "🚀 Deployment Successful!"
           echo "========================================="
-          echo "Environment: ${{ needs.setup.outputs.environment }}"
-          echo "Branch: ${{ github.event.inputs.branch }}"
+          echo "Environment: ${{ env.ENVIRONMENT }}"
+          echo "Branch: ${{ env.BRANCH }}"
           echo ""
           echo "Backend URL: http://$BACKEND_URL"
           echo "API Docs: http://$BACKEND_URL/docs"
