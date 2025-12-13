@@ -16,10 +16,10 @@ const footerLinks = {
 
 export function Footer() {
   return (
-    <footer className="bg-primary text-muted-foreground dark:bg-primary dark:text-primary-foreground/80">
+    <footer style={{backgroundColor: '#121212'}} className="border-t border-white text-white">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         {/* Main footer content */}
-        <div className="py-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="py-2 grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Brand column */}
           <div className="md:col-span-2">
             <Link href="/" className="inline-flex items-center gap-2 mb-4 group">

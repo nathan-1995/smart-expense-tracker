@@ -19,7 +19,8 @@ html {
   --color-foreground: #0f172a;
   --color-card: #ffffff;
   --color-card-foreground: #0f172a;
-  --color-primary: #0f172a; /* Deep Blue - Trust & Stability */
+  --color-footer: #121212; /* Footer Background */
+  --color-primary: #121212; /* Deep Blue - Trust & Stability */
   --color-primary-foreground: #ffffff;
   --color-secondary: #3b82f6; /* Sky Blue - Technology */
   --color-secondary-foreground: #ffffff;
@@ -38,14 +39,21 @@ html {
   --color-popover-foreground: #0f172a;
   --color-accent: #f1f5f9;
   --color-accent-foreground: #0f172a;
+  --color-roadmap: #f1f5f9; /* Roadmap Background - Light mode */
+}
+
+/* Smooth transitions for color changes during theme switching */
+* {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, fill 0.3s ease, stroke 0.3s ease;
 }
 
 /* Plain CSS selector - actually changes CSS variables when .dark class is present */
 .dark {
-  --color-background: #0f172a;
+  --color-background: #121212;
   --color-foreground: #f8fafc;
-  --color-card: #1e293b;
+  --color-card: #121212;
   --color-card-foreground: #f8fafc;
+  --color-footer: #121212; /* Footer Background - Same for dark mode */
   --color-primary: #3b82f6;
   --color-primary-foreground: #ffffff;
   --color-secondary: #60a5fa;
@@ -56,7 +64,7 @@ html {
   --color-success-foreground: #052e16;
   --color-highlight: #fbbf24;
   --color-highlight-foreground: #0f172a;
-  --color-muted: #334155;
+  --color-muted: #121212;
   --color-muted-foreground: #cbd5e1;
   --color-border: #334155;
   --color-input: #334155;
@@ -65,6 +73,7 @@ html {
   --color-popover-foreground: #f8fafc;
   --color-accent: #334155;
   --color-accent-foreground: #f8fafc;
+  --color-roadmap: #1a1a1a; /* Roadmap Background - Dark mode */
 }
 
 /* Hide scrollbar for Chrome, Safari and Opera */

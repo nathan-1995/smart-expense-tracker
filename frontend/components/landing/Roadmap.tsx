@@ -61,7 +61,7 @@ const roadmapItems = [
 
 export function Roadmap() {
   return (
-    <section id="roadmap" className="py-24 bg-muted">
+    <section id="roadmap" className="py-24" style={{backgroundColor: 'var(--color-roadmap)'}}>
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section header */}
         <motion.div
@@ -71,11 +71,11 @@ export function Roadmap() {
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
         >
-          <h2 className="text-3xl sm:text-4xl font-bold text-primary mb-4 tracking-tight">
-            What's <span className="bg-gradient-to-r from-accent-emerald to-secondary bg-clip-text text-transparent">Coming Next</span>
+          <h2 className="text-3xl sm:text-4xl font-bold mb-4 tracking-tight bg-gradient-to-r from-accent-emerald to-secondary bg-clip-text text-transparent leading-tight">
+            What&apos;s Coming Next
           </h2>
           <p className="text-lg text-muted-foreground">
-            We're constantly building new features to help you manage your finances better. Here's what's on our roadmap.
+            We&apos;re constantly building new features to help you manage your finances better. Here&apos;s what&apos;s on our roadmap.
           </p>
         </motion.div>
 

@@ -120,7 +120,7 @@ export function Features() {
             Everything You Need to Manage Your Finances
           </h2>
           <p className="text-lg text-muted-foreground">
-            Whether you're running a business or managing personal finances, FinTracker has you covered
+            Whether you&apos;re running a business or managing personal finances, FinTracker has you covered
           </p>
         </motion.div>
 
@@ -132,13 +132,13 @@ export function Features() {
           viewport={{ once: true }}
           transition={{ duration: 0.5, delay: 0.2 }}
         >
-          <div className="inline-flex items-center gap-2 bg-muted p-1.5 rounded-xl">
+          <div className="inline-flex items-center gap-2 bg-card border border-border p-1.5 rounded-xl shadow-sm">
             <button
               onClick={() => setActiveTab("business")}
               className={cn(
                 "px-6 py-3 rounded-lg font-medium transition-all duration-200",
                 activeTab === "business"
-                  ? "bg-background text-foreground shadow-sm"
+                  ? "bg-gradient-to-r from-accent-emerald to-accent-emerald/90 text-accent-emerald-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
@@ -149,7 +149,7 @@ export function Features() {
               className={cn(
                 "px-6 py-3 rounded-lg font-medium transition-all duration-200",
                 activeTab === "personal"
-                  ? "bg-background text-foreground shadow-sm"
+                  ? "bg-gradient-to-r from-accent-emerald to-accent-emerald/90 text-accent-emerald-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
@@ -172,16 +172,11 @@ export function Features() {
               <motion.div
                 key={index}
                 variants={fadeInUp}
-                className={cn(
-                  "group relative bg-card rounded-xl p-6 border transition-all duration-300 hover:shadow-xl hover:-translate-y-1",
-                  feature.status === "available"
-                    ? "border-border hover:border-accent-emerald/30 hover:shadow-accent-emerald/10"
-                    : "border-border hover:border-secondary/30 hover:shadow-secondary/10"
-                )}
+                className="group relative bg-card rounded-xl p-6 border border-border transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-accent-emerald/30 hover:shadow-accent-emerald/10"
               >
                 {/* Coming soon badge */}
                 {feature.status === "coming-soon" && feature.badge && (
-                  <div className="absolute -top-3 -right-3 bg-gradient-to-r from-secondary to-accent-emerald text-secondary-foreground text-xs font-bold px-3 py-1 rounded-full shadow-md">
+                  <div className="absolute -top-3 -right-3 bg-accent-emerald text-accent-emerald-foreground text-xs font-bold px-3 py-1 rounded-full shadow-md">
                     {feature.badge}
                   </div>
                 )}
@@ -189,10 +184,7 @@ export function Features() {
                 {/* Icon */}
                 <div
                   className={cn(
-                    "w-12 h-12 rounded-xl flex items-center justify-center mb-4 transition-all duration-300",
-                    feature.status === "available"
-                      ? "bg-accent-emerald/10 text-accent-emerald group-hover:bg-accent-emerald group-hover:text-accent-emerald-foreground group-hover:scale-110"
-                      : "bg-secondary/10 text-secondary group-hover:bg-secondary group-hover:text-secondary-foreground group-hover:scale-110"
+                    "w-12 h-12 rounded-xl flex items-center justify-center mb-4 transition-all duration-300 bg-accent-emerald/10 text-accent-emerald group-hover:bg-accent-emerald group-hover:text-accent-emerald-foreground group-hover:scale-110",
                   )}
                 >
                   <Icon className="w-6 h-6" />
@@ -206,6 +198,11 @@ export function Features() {
                       Live
                     </span>
                   )}
+                  {feature.status === "coming-soon" && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-accent-emerald/10 text-accent-emerald border border-accent-emerald/20">
+                      Soon
+                    </span>
+                  )}
                 </h3>
                 <p className="text-muted-foreground text-sm leading-relaxed">
                   {feature.description}
@@ -214,8 +211,7 @@ export function Features() {
                 {/* Hover indicator */}
                 <div
                   className={cn(
-                    "absolute bottom-0 left-0 h-1 w-0 group-hover:w-full transition-all duration-300 rounded-b-xl",
-                    feature.status === "available" ? "bg-accent-emerald" : "bg-secondary"
+                    "absolute bottom-0 left-0 h-1 w-0 group-hover:w-full transition-all duration-300 rounded-b-xl bg-accent-emerald",
                   )}
                 />
               </motion.div>

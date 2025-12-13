@@ -130,7 +130,7 @@ export function HowItWorks() {
               className={cn(
                 "px-6 py-3 rounded-lg font-medium transition-all duration-200",
                 activeTab === "business"
-                  ? "bg-primary text-primary-foreground shadow-sm"
+                  ? "bg-gradient-to-r from-accent-emerald to-accent-emerald/90 text-accent-emerald-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
@@ -141,7 +141,7 @@ export function HowItWorks() {
               className={cn(
                 "px-6 py-3 rounded-lg font-medium transition-all duration-200",
                 activeTab === "personal"
-                  ? "bg-primary text-primary-foreground shadow-sm"
+                  ? "bg-gradient-to-r from-accent-emerald to-accent-emerald/90 text-accent-emerald-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
