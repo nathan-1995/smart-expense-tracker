@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { authApi } from "@/lib/api";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, XCircle, Loader2 } from "lucide-react";
 
-export default function VerifyEmailPage() {
+function VerifyEmailContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
@@ -136,5 +136,29 @@ export default function VerifyEmailPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function VerifyEmailPage() {
+  return (
+    <Suspense fallback={
+      <div className="relative flex min-h-screen items-center justify-center bg-background p-4">
+        <div className="fixed top-6 right-6 z-50">
+          <ThemeToggle />
+        </div>
+        <div className="w-full max-w-md">
+          <div className="bg-card border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-xl p-8">
+            <div className="text-center">
+              <Loader2 className="h-16 w-16 animate-spin text-primary mx-auto" />
+              <h2 className="text-xl font-semibold text-foreground mt-4">
+                Loading...
+              </h2>
+            </div>
+          </div>
+        </div>
+      </div>
+    }>
+      <VerifyEmailContent />
+    </Suspense>
   );
 }
