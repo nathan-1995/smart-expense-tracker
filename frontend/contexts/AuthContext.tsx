@@ -63,7 +63,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (!suppressToast) {
         toast.success("Login successful!");
       }
-      router.push("/dashboard");
+
+      // Redirect based on user role
+      if (userData.is_superuser) {
+        router.push("/admin");
+      } else {
+        router.push("/dashboard");
+      }
     } catch (error: unknown) {
       const apiError = error as ApiError;
       const message = apiError?.response?.data?.detail || "Login failed. Please check your credentials.";

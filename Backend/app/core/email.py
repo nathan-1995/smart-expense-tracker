@@ -77,6 +77,13 @@ class EmailService:
             message["From"] = f"FinTrack <{settings.FROM_EMAIL}>"
             message["To"] = to_email
 
+            # Add SES Configuration Set for bounce/complaint tracking
+            message.add_header("X-SES-CONFIGURATION-SET", "fintrack-production")
+
+            # Add headers for better deliverability and compliance
+            message.add_header("List-Unsubscribe", f"<{settings.FRONTEND_URL}/unsubscribe>")
+            message.add_header("List-Unsubscribe-Post", "List-Unsubscribe=One-Click")
+
             # Add plain text part (fallback)
             if text_body:
                 text_part = MIMEText(text_body, "plain")

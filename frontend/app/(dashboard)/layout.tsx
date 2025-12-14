@@ -6,6 +6,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { Sidebar } from "@/components/dashboard/Sidebar";
 import { Header } from "@/components/dashboard/Header";
 import { HamburgerMenu } from "@/components/ui/hamburger-menu";
+import VerificationBanner from "@/components/dashboard/VerificationBanner";
+import SystemBanners from "@/components/dashboard/SystemBanners";
+import LoadingScreen from "@/components/LoadingScreen";
 import { cn } from "@/lib/utils";
 
 export default function DashboardLayout({
@@ -13,7 +16,7 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const router = useRouter();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true); // Open by default on desktop
 
@@ -32,14 +35,7 @@ export default function DashboardLayout({
   };
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   if (!isAuthenticated) {
@@ -88,7 +84,13 @@ export default function DashboardLayout({
       {/* Main Content - Expands when sidebar closes on desktop */}
       <div className="flex-1 flex flex-col min-w-0">
         <Header onMenuClick={toggleSidebar} isSidebarOpen={isSidebarOpen} />
-        <main className="flex-1 p-6">{children}</main>
+        <main className="flex-1 p-6">
+          <SystemBanners />
+          {user && !user.is_verified && (
+            <VerificationBanner userEmail={user.email} />
+          )}
+          {children}
+        </main>
       </div>
     </div>
   );

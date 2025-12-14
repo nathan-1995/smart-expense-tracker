@@ -17,7 +17,10 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, CheckCircle2, XCircle, Mail } from "lucide-react";
+import { authApi } from "@/lib/api";
+import { toast } from "sonner";
 
 const profileSchema = z.object({
   first_name: z.string().min(1, "First name is required"),
@@ -34,6 +37,7 @@ type ProfileFormValues = z.infer<typeof profileSchema>;
 
 export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState(false);
+  const [isResendingEmail, setIsResendingEmail] = useState(false);
   const { user, updateUser } = useAuth();
 
   const form = useForm<ProfileFormValues>({
@@ -58,6 +62,20 @@ export default function ProfilePage() {
       // Error handling is done in AuthContext
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    if (!user?.email) return;
+
+    setIsResendingEmail(true);
+    try {
+      await authApi.resendVerification(user.email);
+      toast.success("Verification email sent! Please check your inbox.");
+    } catch (error) {
+      toast.error("Failed to resend verification email. Please try again.");
+    } finally {
+      setIsResendingEmail(false);
     }
   };
 
@@ -90,6 +108,34 @@ export default function ProfilePage() {
             <div className="flex justify-between py-2 border-b">
               <span className="text-sm font-medium">Email</span>
               <span className="text-sm text-muted-foreground">{user.email}</span>
+            </div>
+            <div className="flex justify-between items-center py-2 border-b">
+              <span className="text-sm font-medium">Email Verification</span>
+              <div className="flex items-center gap-2">
+                {user.is_verified ? (
+                  <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border-green-300 dark:border-green-700">
+                    <CheckCircle2 className="h-3 w-3 mr-1" />
+                    Verified
+                  </Badge>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="bg-amber-50 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border-amber-300 dark:border-amber-700">
+                      <XCircle className="h-3 w-3 mr-1" />
+                      Not Verified
+                    </Badge>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={handleResendVerification}
+                      disabled={isResendingEmail}
+                      className="h-7 text-xs"
+                    >
+                      <Mail className="h-3 w-3 mr-1" />
+                      {isResendingEmail ? "Sending..." : "Resend Email"}
+                    </Button>
+                  </div>
+                )}
+              </div>
             </div>
             <div className="flex justify-between py-2 border-b">
               <span className="text-sm font-medium">Account Created</span>

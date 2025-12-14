@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from math import ceil
 
-from app.api.deps import get_db, get_current_user
+from app.api.deps import get_db, get_current_user, get_verified_user
 from app.models.user import User
 from app.schemas.invoice import (
     InvoiceCreate,
@@ -25,7 +25,7 @@ router = APIRouter()
 async def create_invoice(
     invoice_data: InvoiceCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_verified_user),
 ) -> InvoiceResponse:
     """
     Create a new invoice with items.
@@ -40,6 +40,7 @@ async def create_invoice(
 
     Raises:
         401: Not authenticated
+        403: Email not verified
         404: Client not found
         422: Validation error
     """
@@ -165,7 +166,7 @@ async def update_invoice(
     invoice_id: UUID,
     invoice_data: InvoiceUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_verified_user),
 ) -> InvoiceResponse:
     """
     Update an invoice.
@@ -181,6 +182,7 @@ async def update_invoice(
 
     Raises:
         401: Not authenticated
+        403: Email not verified
         404: Invoice not found
         422: Validation error
     """
@@ -233,7 +235,7 @@ async def update_invoice_status(
     invoice_id: UUID,
     status: Literal["draft", "sent", "paid", "overdue", "cancelled"] = Query(..., description="New status"),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_verified_user),
 ) -> InvoiceResponse:
     """
     Update invoice status.
@@ -249,6 +251,7 @@ async def update_invoice_status(
 
     Raises:
         401: Not authenticated
+        403: Email not verified
         404: Invoice not found
     """
     invoice = await InvoiceRepository.update_status(db, invoice_id, current_user.id, status)

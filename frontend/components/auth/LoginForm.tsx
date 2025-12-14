@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
+import LoadingScreen from "@/components/LoadingScreen";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -27,6 +28,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const { login } = useAuth();
 
   const form = useForm<LoginFormValues>({
@@ -41,12 +43,18 @@ export function LoginForm() {
     setIsLoading(true);
     try {
       await login(data.email, data.password);
+      // If login is successful, show loading screen while redirecting
+      setIsRedirecting(true);
     } catch (error) {
       // Error handling is done in AuthContext
-    } finally {
       setIsLoading(false);
     }
+    // Don't set isLoading to false here - keep it true until redirect
   };
+
+  if (isRedirecting) {
+    return <LoadingScreen />;
+  }
 
   return (
     <div className="w-full">
@@ -69,6 +77,7 @@ export function LoginForm() {
                   <Input
                     type="email"
                     placeholder="name@example.com"
+                    autoComplete="email"
                     {...field}
                     disabled={isLoading}
                     className="h-11"
@@ -96,6 +105,7 @@ export function LoginForm() {
                   <Input
                     type="password"
                     placeholder="Enter your password"
+                    autoComplete="current-password"
                     {...field}
                     disabled={isLoading}
                     className="h-11"

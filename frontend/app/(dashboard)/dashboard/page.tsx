@@ -6,6 +6,7 @@ import { invoiceApi } from "@/lib/api";
 import { InvoiceStats } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, Receipt, DollarSign, TrendingUp } from "lucide-react";
+import StatCardSkeleton from "@/components/dashboard/StatCardSkeleton";
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -38,7 +39,7 @@ export default function DashboardPage() {
   const stats = [
     {
       title: "Total Income",
-      value: loading ? "..." : formatCurrency(invoiceStats?.paid_amount || 0),
+      value: formatCurrency(invoiceStats?.paid_amount || 0),
       description: "From paid invoices",
       icon: DollarSign,
       color: "text-green-600",
@@ -52,14 +53,14 @@ export default function DashboardPage() {
     },
     {
       title: "Invoices",
-      value: loading ? "..." : String(invoiceStats?.total_invoices || 0),
+      value: String(invoiceStats?.total_invoices || 0),
       description: `${invoiceStats?.draft_count || 0} drafts, ${invoiceStats?.sent_count || 0} sent`,
       icon: FileText,
       color: "text-blue-600",
     },
     {
       title: "Net Profit",
-      value: loading ? "..." : formatCurrency(invoiceStats?.paid_amount || 0),
+      value: formatCurrency(invoiceStats?.paid_amount || 0),
       description: "Income - Expenses",
       icon: TrendingUp,
       color: "text-purple-600",
@@ -76,25 +77,36 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, index) => {
-          const Icon = stat.icon;
-          return (
-            <Card key={index}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  {stat.title}
-                </CardTitle>
-                <Icon className={`h-4 w-4 ${stat.color}`} />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stat.value}</div>
-                <p className="text-xs text-muted-foreground">
-                  {stat.description}
-                </p>
-              </CardContent>
-            </Card>
-          );
-        })}
+        {loading ? (
+          // Show skeleton loaders while loading
+          <>
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+          </>
+        ) : (
+          // Show actual stat cards when loaded
+          stats.map((stat, index) => {
+            const Icon = stat.icon;
+            return (
+              <Card key={index}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    {stat.title}
+                  </CardTitle>
+                  <Icon className={`h-4 w-4 ${stat.color}`} />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stat.value}</div>
+                  <p className="text-xs text-muted-foreground">
+                    {stat.description}
+                  </p>
+                </CardContent>
+              </Card>
+            );
+          })
+        )}
       </div>
 
       <Card>

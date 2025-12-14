@@ -18,6 +18,14 @@ import {
   InvoiceUpdate,
   InvoiceListResponse,
   InvoiceStats,
+  AdminUser,
+  AdminUserUpdate,
+  AdminUserListResponse,
+  AdminStatistics,
+  SystemBanner,
+  SystemBannerCreate,
+  SystemBannerUpdate,
+  SystemBannerListResponse,
 } from "./types";
 import { getAccessToken, getRefreshToken, setTokens, removeTokens } from "./auth";
 
@@ -87,6 +95,15 @@ apiClient.interceptors.response.use(
       if (typeof window !== "undefined") {
         window.location.replace("/login");
       }
+    }
+
+    // Handle 403 Forbidden errors (e.g., email not verified)
+    if (error.response?.status === 403) {
+      // Keep the error message from the backend
+      const errorMessage = error.response?.data?.detail || "Access forbidden";
+
+      // Enhance the error object with a more user-friendly message
+      error.message = errorMessage;
     }
 
     return Promise.reject(error);
@@ -242,6 +259,99 @@ export const invoiceApi = {
 
   getStats: async (): Promise<InvoiceStats> => {
     const response = await apiClient.get<InvoiceStats>("/invoices/stats");
+    return response.data;
+  },
+};
+
+// Admin API
+export const adminApi = {
+  // Get admin statistics
+  getStatistics: async (): Promise<AdminStatistics> => {
+    const response = await apiClient.get<AdminStatistics>("/admin/statistics");
+    return response.data;
+  },
+
+  // List all users
+  listUsers: async (params?: {
+    skip?: number;
+    limit?: number;
+    search?: string;
+    is_verified?: boolean;
+    is_active?: boolean;
+    is_superuser?: boolean;
+  }): Promise<AdminUserListResponse> => {
+    const response = await apiClient.get<AdminUserListResponse>("/admin/users", { params });
+    return response.data;
+  },
+
+  // Get user by ID
+  getUserById: async (userId: string): Promise<AdminUser> => {
+    const response = await apiClient.get<AdminUser>(`/admin/users/${userId}`);
+    return response.data;
+  },
+
+  // Update user
+  updateUser: async (userId: string, data: AdminUserUpdate): Promise<AdminUser> => {
+    const response = await apiClient.put<AdminUser>(`/admin/users/${userId}`, data);
+    return response.data;
+  },
+
+  // Delete user
+  deleteUser: async (userId: string): Promise<void> => {
+    await apiClient.delete(`/admin/users/${userId}`);
+  },
+
+  // Unlock user account
+  unlockUser: async (userId: string): Promise<AdminUser> => {
+    const response = await apiClient.post<AdminUser>(`/admin/users/${userId}/unlock`);
+    return response.data;
+  },
+};
+
+// Banner API
+export const bannerApi = {
+  // Get active banners for current user
+  getActiveBanners: async (): Promise<SystemBanner[]> => {
+    const response = await apiClient.get<SystemBanner[]>("/banners/active");
+    return response.data;
+  },
+
+  // Admin: Create banner
+  createBanner: async (data: SystemBannerCreate): Promise<SystemBanner> => {
+    const response = await apiClient.post<SystemBanner>("/banners", data);
+    return response.data;
+  },
+
+  // Admin: List all banners
+  listBanners: async (params?: {
+    skip?: number;
+    limit?: number;
+    active_only?: boolean;
+  }): Promise<SystemBannerListResponse> => {
+    const response = await apiClient.get<SystemBannerListResponse>("/banners", { params });
+    return response.data;
+  },
+
+  // Admin: Get banner by ID
+  getBannerById: async (bannerId: string): Promise<SystemBanner> => {
+    const response = await apiClient.get<SystemBanner>(`/banners/${bannerId}`);
+    return response.data;
+  },
+
+  // Admin: Update banner
+  updateBanner: async (bannerId: string, data: SystemBannerUpdate): Promise<SystemBanner> => {
+    const response = await apiClient.put<SystemBanner>(`/banners/${bannerId}`, data);
+    return response.data;
+  },
+
+  // Admin: Delete banner
+  deleteBanner: async (bannerId: string): Promise<void> => {
+    await apiClient.delete(`/banners/${bannerId}`);
+  },
+
+  // Admin: Deactivate banner
+  deactivateBanner: async (bannerId: string): Promise<SystemBanner> => {
+    const response = await apiClient.post<SystemBanner>(`/banners/${bannerId}/deactivate`);
     return response.data;
   },
 };

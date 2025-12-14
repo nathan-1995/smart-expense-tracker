@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { RegisterForm } from "@/components/auth/RegisterForm";
 import { useAuth } from "@/hooks/useAuth";
 import { ThemeToggle } from "@/components/theme-toggle";
+import LoadingScreen from "@/components/LoadingScreen";
 
 export default function RegisterPage() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -17,14 +18,7 @@ export default function RegisterPage() {
   }, [isAuthenticated, isLoading, router]);
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   if (isAuthenticated) {

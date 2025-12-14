@@ -20,6 +20,7 @@ import {
   Banknote,
   MoreVertical,
   LogOut,
+  Shield,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -159,6 +160,19 @@ export function Sidebar({ onNavigate, isCollapsed = false, onToggle }: SidebarPr
 
         {/* Content Separator */}
         {open && <hr className="my-4 border-border" />}
+
+        {/* Admin Panel - Only show for superusers */}
+        {user?.is_superuser && (
+          <SidebarMenuItem
+            item={{
+              href: "/admin",
+              label: "Admin Panel",
+              icon: Shield,
+            }}
+            onNavigate={onNavigate}
+            isCollapsed={!open}
+          />
+        )}
 
         {/* Settings & Profile Section */}
         {settingsItems.map((item) => (

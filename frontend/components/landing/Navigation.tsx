@@ -43,19 +43,19 @@ export function Navigation() {
 
           {/* Desktop CTA Buttons */}
           <div className="hidden md:flex items-center gap-4">
-            <Link href="/login">
+            <a href={`${process.env.NEXT_PUBLIC_APP_URL || ''}/login`}>
               <Button
                 variant="ghost"
                 className="text-sm font-semibold hover:scale-105 transition-all duration-200"
               >
                 Log In
               </Button>
-            </Link>
-            <Link href="/register">
+            </a>
+            <a href={`${process.env.NEXT_PUBLIC_APP_URL || ''}/register`}>
               <Button className="h-10 px-6 bg-gradient-to-r from-accent-emerald to-accent-emerald/90 text-accent-emerald-foreground hover:from-accent-emerald/90 hover:to-accent-emerald font-semibold shadow-lg shadow-accent-emerald/20 hover:shadow-xl hover:shadow-accent-emerald/30 hover:scale-105 transition-all duration-200">
                 Sign Up
               </Button>
-            </Link>
+            </a>
           </div>
 
           {/* Mobile menu button */}
@@ -93,14 +93,14 @@ export function Navigation() {
                   {link.name}
                 </a>
               ))}
-              <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
+              <a href={`${process.env.NEXT_PUBLIC_APP_URL || ''}/login`} onClick={() => setMobileMenuOpen(false)}>
                 <Button variant="outline" className="w-full justify-center h-11 font-semibold">
                   Log In
                 </Button>
-              </Link>
-              <Link href="/register" onClick={() => setMobileMenuOpen(false)}>
+              </a>
+              <a href={`${process.env.NEXT_PUBLIC_APP_URL || ''}/register`} onClick={() => setMobileMenuOpen(false)}>
                 <Button className="w-full justify-center h-11 bg-gradient-to-r from-accent-emerald to-accent-emerald/90 text-accent-emerald-foreground hover:from-accent-emerald/90 hover:to-accent-emerald font-semibold shadow-lg shadow-accent-emerald/20">Sign Up</Button>
-              </Link>
+              </a>
             </div>
           </motion.div>
         )}
