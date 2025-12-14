@@ -27,6 +27,22 @@ export default function SystemBanners() {
     if (dismissed) {
       setDismissedBanners(JSON.parse(dismissed));
     }
+
+    // Poll for new banners every 10 seconds
+    const pollInterval = setInterval(() => {
+      fetchBanners();
+    }, 10000);
+
+    // Listen for custom banner update events (triggered by admin panel)
+    const handleBannerUpdate = () => {
+      fetchBanners();
+    };
+    window.addEventListener("bannersUpdated", handleBannerUpdate);
+
+    return () => {
+      clearInterval(pollInterval);
+      window.removeEventListener("bannersUpdated", handleBannerUpdate);
+    };
   }, []);
 
   const handleDismiss = (bannerId: string) => {

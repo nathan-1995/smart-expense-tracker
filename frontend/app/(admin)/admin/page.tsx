@@ -74,13 +74,21 @@ export default function AdminPage() {
   });
 
   // Loading states
-  const [isLoading, setIsLoading] = useState(true);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+  const [isLoadingBanners, setIsLoadingBanners] = useState(false);
+  const [dataLoaded, setDataLoaded] = useState({
+    stats: false,
+    users: false,
+    banners: false,
+  });
 
   // Fetch statistics
   const fetchStats = async () => {
     try {
       const data = await adminApi.getStatistics();
       setStats(data);
+      setDataLoaded(prev => ({ ...prev, stats: true }));
     } catch (error) {
       toast.error("Failed to fetch statistics");
     }
@@ -88,6 +96,7 @@ export default function AdminPage() {
 
   // Fetch users
   const fetchUsers = async () => {
+    setIsLoadingUsers(true);
     try {
       const params: any = { skip: usersSkip, limit: usersLimit };
 
@@ -98,36 +107,66 @@ export default function AdminPage() {
       const data = await adminApi.listUsers(params);
       setUsers(data.users);
       setUsersTotal(data.total);
+      setDataLoaded(prev => ({ ...prev, users: true }));
     } catch (error) {
       toast.error("Failed to fetch users");
+    } finally {
+      setIsLoadingUsers(false);
     }
   };
 
   // Fetch banners
   const fetchBanners = async () => {
+    setIsLoadingBanners(true);
     try {
       const data = await bannerApi.listBanners({ skip: 0, limit: 100 });
       setBanners(data.banners);
       setBannersTotal(data.total);
+      setDataLoaded(prev => ({ ...prev, banners: true }));
     } catch (error) {
       toast.error("Failed to fetch banners");
+    } finally {
+      setIsLoadingBanners(false);
     }
   };
 
-  // Initial load
+  // Initial load - only load stats immediately
   useEffect(() => {
-    const loadData = async () => {
-      setIsLoading(true);
-      await Promise.all([fetchStats(), fetchUsers(), fetchBanners()]);
-      setIsLoading(false);
+    const loadInitialData = async () => {
+      await fetchStats();
+      setIsInitialLoad(false);
     };
-    loadData();
+    loadInitialData();
   }, []);
 
-  // Reload users when filters change
+  // Load data when switching tabs (only if not already loaded)
   useEffect(() => {
-    fetchUsers();
+    if (isInitialLoad) return;
+
+    if (activeTab === "users" && !dataLoaded.users) {
+      fetchUsers();
+    } else if (activeTab === "banners" && !dataLoaded.banners) {
+      fetchBanners();
+    }
+  }, [activeTab, isInitialLoad]);
+
+  // Reload users when filters change (only if on users tab)
+  useEffect(() => {
+    if (activeTab === "users" && !isInitialLoad && dataLoaded.users) {
+      fetchUsers();
+    }
   }, [userSearch, userFilter, usersSkip]);
+
+  // Auto-refresh banners every 60 seconds when on banners tab (as backup to event system)
+  useEffect(() => {
+    if (activeTab === "banners") {
+      const interval = setInterval(() => {
+        fetchBanners();
+      }, 60000); // 60 seconds
+
+      return () => clearInterval(interval);
+    }
+  }, [activeTab]);
 
   // User actions
   const handleUnlockUser = async (userId: string) => {
@@ -184,6 +223,9 @@ export default function AdminPage() {
       });
       fetchBanners();
       fetchStats();
+
+      // Notify other components that banners have been updated
+      window.dispatchEvent(new Event("bannersUpdated"));
     } catch (error) {
       toast.error("Failed to create banner");
     }
@@ -195,6 +237,9 @@ export default function AdminPage() {
       toast.success(`Banner ${!isActive ? "activated" : "deactivated"}`);
       fetchBanners();
       fetchStats();
+
+      // Notify other components that banners have been updated
+      window.dispatchEvent(new Event("bannersUpdated"));
     } catch (error) {
       toast.error("Failed to toggle banner");
     }
@@ -208,6 +253,9 @@ export default function AdminPage() {
       toast.success("Banner deleted successfully");
       fetchBanners();
       fetchStats();
+
+      // Notify other components that banners have been updated
+      window.dispatchEvent(new Event("bannersUpdated"));
     } catch (error) {
       toast.error("Failed to delete banner");
     }
@@ -235,7 +283,7 @@ export default function AdminPage() {
     }
   };
 
-  if (isLoading) {
+  if (isInitialLoad) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -383,6 +431,14 @@ export default function AdminPage() {
           </Card>
 
           {/* Users Table */}
+          {isLoadingUsers ? (
+            <Card className="p-8">
+              <div className="flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mr-3" />
+                <p className="text-muted-foreground">Loading users...</p>
+              </div>
+            </Card>
+          ) : (
           <Card>
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -457,10 +513,13 @@ export default function AdminPage() {
               </table>
             </div>
           </Card>
+          )}
 
-          <p className="text-sm text-muted-foreground mt-4">
-            Showing {users.length} of {usersTotal} users
-          </p>
+          {!isLoadingUsers && (
+            <p className="text-sm text-muted-foreground mt-4">
+              Showing {users.length} of {usersTotal} users
+            </p>
+          )}
         </div>
       )}
 
@@ -533,53 +592,64 @@ export default function AdminPage() {
           )}
 
           {/* Banners List */}
-          <div className="space-y-4">
-            {banners.map((banner) => (
-              <Card key={banner.id} className="p-4">
-                <div className="flex items-start gap-4">
-                  <div className={`p-2 rounded ${getBannerColor(banner.banner_type)} text-white`}>
-                    {getBannerIcon(banner.banner_type)}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Badge className={banner.is_active ? "bg-green-600" : "bg-gray-400"}>
-                        {banner.is_active ? "Active" : "Inactive"}
-                      </Badge>
-                      <Badge variant="outline">{banner.banner_type}</Badge>
-                      {banner.show_to_unverified_only && (
-                        <Badge variant="secondary">Unverified Only</Badge>
-                      )}
-                    </div>
-                    <p className="text-sm mb-2">{banner.message}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Created: {new Date(banner.created_at).toLocaleString()}
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleToggleBanner(banner.id, banner.is_active)}
-                    >
-                      {banner.is_active ? "Deactivate" : "Activate"}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => handleDeleteBanner(banner.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
-
-          {banners.length === 0 && (
-            <Card className="p-8 text-center">
-              <p className="text-muted-foreground">No banners created yet</p>
+          {isLoadingBanners ? (
+            <Card className="p-8">
+              <div className="flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mr-3" />
+                <p className="text-muted-foreground">Loading banners...</p>
+              </div>
             </Card>
+          ) : (
+            <>
+              <div className="space-y-4">
+                {banners.map((banner) => (
+                  <Card key={banner.id} className="p-4">
+                    <div className="flex items-start gap-4">
+                      <div className={`p-2 rounded ${getBannerColor(banner.banner_type)} text-white`}>
+                        {getBannerIcon(banner.banner_type)}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Badge className={banner.is_active ? "bg-green-600" : "bg-gray-400"}>
+                            {banner.is_active ? "Active" : "Inactive"}
+                          </Badge>
+                          <Badge variant="outline">{banner.banner_type}</Badge>
+                          {banner.show_to_unverified_only && (
+                            <Badge variant="secondary">Unverified Only</Badge>
+                          )}
+                        </div>
+                        <p className="text-sm mb-2">{banner.message}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Created: {new Date(banner.created_at).toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleToggleBanner(banner.id, banner.is_active)}
+                        >
+                          {banner.is_active ? "Deactivate" : "Activate"}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleDeleteBanner(banner.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+
+              {banners.length === 0 && (
+                <Card className="p-8 text-center">
+                  <p className="text-muted-foreground">No banners created yet</p>
+                </Card>
+              )}
+            </>
           )}
         </div>
       )}

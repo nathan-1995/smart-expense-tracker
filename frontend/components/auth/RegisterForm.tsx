@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Loader2, Mail, CheckCircle2 } from "lucide-react";
+import LoadingScreen from "@/components/LoadingScreen";
 
 const registerSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -33,6 +34,7 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export function RegisterForm() {
   const [isLoading, setIsLoading] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState("");
   const { register } = useAuth();
@@ -51,14 +53,18 @@ export function RegisterForm() {
     setIsLoading(true);
     try {
       await register(data);
-      setRegisteredEmail(data.email);
-      setShowSuccess(true);
+      // If registration is successful, show loading screen while redirecting
+      setIsRedirecting(true);
     } catch (error) {
       // Error handling is done in AuthContext
-    } finally {
       setIsLoading(false);
     }
+    // Don't set isLoading to false here - keep it true until redirect
   };
+
+  if (isRedirecting) {
+    return <LoadingScreen />;
+  }
 
   if (showSuccess) {
     return (

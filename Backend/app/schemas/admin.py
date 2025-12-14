@@ -30,8 +30,8 @@ class AdminUserResponse(BaseModel):
     locked_until: Optional[datetime]
 
     # Subscription info
-    subscription_tier: str
-    subscription_status: str
+    subscription_tier: Optional[str]
+    subscription_status: Optional[str]
     trial_ends_at: Optional[datetime]
 
     # Computed fields

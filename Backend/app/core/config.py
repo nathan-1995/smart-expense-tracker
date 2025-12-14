@@ -1,5 +1,7 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing import List
+from pydantic import field_validator
+from typing import List, Union
+import json
 
 
 class Settings(BaseSettings):
@@ -28,22 +30,35 @@ class Settings(BaseSettings):
     DEBUG: bool = True
 
     # CORS Configuration
-    BACKEND_CORS_ORIGINS: List[str] = [
-    # Custom domains (Production)
-    "https://fintracker.cc",
-    "https://www.fintracker.cc",
+    BACKEND_CORS_ORIGINS: Union[List[str], str] = [
+        # Custom domains (Production)
+        "https://fintracker.cc",
+        "https://www.fintracker.cc",
 
-    # Custom domains (Development)
-    "https://dev.fintracker.cc",
-    "https://www.dev.fintracker.cc",
-    
-    # Local dev
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
+        # Custom domains (Development)
+        "https://dev.fintracker.cc",
+        "https://www.dev.fintracker.cc",
 
-    # Without nginx proxy
-    "http://localhost:8000",
-]
+        # Local dev
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+
+        # Without nginx proxy
+        "http://localhost:8000",
+    ]
+
+    @field_validator("BACKEND_CORS_ORIGINS", mode="before")
+    @classmethod
+    def parse_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:
+        """Parse CORS origins from JSON string or return list as-is."""
+        if isinstance(v, str):
+            try:
+                # Try to parse as JSON array string
+                return json.loads(v)
+            except json.JSONDecodeError:
+                # If it's a single origin string, wrap it in a list
+                return [v]
+        return v
 
     # Account Security
     MAX_LOGIN_ATTEMPTS: int = 5

@@ -28,9 +28,9 @@ function VerifyEmailContent() {
         setStatus("success");
         setMessage("Your email has been verified successfully!");
 
-        // Redirect to login after 3 seconds
+        // Redirect to dashboard after 3 seconds
         setTimeout(() => {
-          router.push("/login");
+          router.push("/dashboard");
         }, 3000);
       } catch (error: any) {
         setStatus("error");
@@ -102,10 +102,10 @@ function VerifyEmailContent() {
                 </h2>
                 <p className="text-sm text-muted-foreground">{message}</p>
                 <p className="text-xs text-muted-foreground">
-                  Redirecting to login page in 3 seconds...
+                  Redirecting to dashboard in 3 seconds...
                 </p>
-                <Button onClick={() => router.push("/login")} className="mt-4">
-                  Go to Login
+                <Button onClick={() => router.push("/dashboard")} className="mt-4">
+                  Go to Dashboard
                 </Button>
               </div>
             )}

@@ -95,6 +95,8 @@ class UserResponse(UserBase):
     subscription_status: Optional[str] = None
     is_active: bool
     is_verified: bool
+    is_superuser: bool  # Added for admin access control
+    last_login_at: Optional[datetime] = None  # Added for user info
     created_at: datetime
     updated_at: datetime
 
@@ -106,10 +108,8 @@ class UserInDB(UserResponse):
     """Schema for user stored in database (includes sensitive fields)."""
 
     password_hash: str
-    is_superuser: bool
     failed_login_attempts: int
     locked_until: Optional[datetime] = None
-    last_login_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
