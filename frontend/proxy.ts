@@ -52,8 +52,13 @@ export function proxy(request: NextRequest) {
   if (isAppRoute && !isAppDomain) {
     const appUrl = new URL(request.url);
 
-    // In production, redirect to app.fintracker.cc
-    if (hostname.includes("fintracker.cc")) {
+    // Determine correct app subdomain based on environment
+    if (hostname.includes("dev.fintracker.cc")) {
+      // Dev environment: dev.fintracker.cc → app.dev.fintracker.cc
+      appUrl.hostname = "app.dev.fintracker.cc";
+      return NextResponse.redirect(appUrl);
+    } else if (hostname.includes("fintracker.cc")) {
+      // Production: fintracker.cc → app.fintracker.cc
       appUrl.hostname = "app.fintracker.cc";
       return NextResponse.redirect(appUrl);
     }
@@ -66,7 +71,14 @@ export function proxy(request: NextRequest) {
     !hostname.startsWith("localhost")
   ) {
     const marketingUrl = new URL(request.url);
-    marketingUrl.hostname = "fintracker.cc";
+
+    // Redirect to appropriate marketing domain based on environment
+    if (hostname.includes("app.dev.fintracker.cc")) {
+      marketingUrl.hostname = "dev.fintracker.cc";
+    } else {
+      marketingUrl.hostname = "fintracker.cc";
+    }
+
     return NextResponse.redirect(marketingUrl);
   }
 
