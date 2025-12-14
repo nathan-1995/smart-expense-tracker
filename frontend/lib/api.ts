@@ -89,6 +89,15 @@ apiClient.interceptors.response.use(
       }
     }
 
+    // Handle 403 Forbidden errors (e.g., email not verified)
+    if (error.response?.status === 403) {
+      // Keep the error message from the backend
+      const errorMessage = error.response?.data?.detail || "Access forbidden";
+
+      // Enhance the error object with a more user-friendly message
+      error.message = errorMessage;
+    }
+
     return Promise.reject(error);
   }
 );

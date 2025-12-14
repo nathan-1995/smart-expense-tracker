@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from math import ceil
 
-from app.api.deps import get_db, get_current_user
+from app.api.deps import get_db, get_current_user, get_verified_user
 from app.models.user import User
 from app.schemas.client import ClientCreate, ClientUpdate, ClientResponse, ClientListResponse
 from app.repositories.client_repository import ClientRepository
@@ -17,7 +17,7 @@ router = APIRouter()
 async def create_client(
     client_data: ClientCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_verified_user),
 ) -> ClientResponse:
     """
     Create a new client.
@@ -32,6 +32,7 @@ async def create_client(
 
     Raises:
         401: Not authenticated
+        403: Email not verified
         422: Validation error
     """
     client = await ClientRepository.create(db, current_user.id, client_data)
@@ -113,7 +114,7 @@ async def update_client(
     client_id: UUID,
     client_data: ClientUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_verified_user),
 ) -> ClientResponse:
     """
     Update a client.
@@ -129,6 +130,7 @@ async def update_client(
 
     Raises:
         401: Not authenticated
+        403: Email not verified
         404: Client not found
         422: Validation error
     """

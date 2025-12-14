@@ -123,6 +123,7 @@ export function RegisterForm() {
                   <FormControl>
                     <Input
                       placeholder="John"
+                      autoComplete="given-name"
                       {...field}
                       disabled={isLoading}
                       className="h-11"
@@ -141,6 +142,7 @@ export function RegisterForm() {
                   <FormControl>
                     <Input
                       placeholder="Doe"
+                      autoComplete="family-name"
                       {...field}
                       disabled={isLoading}
                       className="h-11"
@@ -161,6 +163,7 @@ export function RegisterForm() {
                   <Input
                     type="email"
                     placeholder="name@example.com"
+                    autoComplete="email"
                     {...field}
                     disabled={isLoading}
                     className="h-11"
@@ -180,6 +183,7 @@ export function RegisterForm() {
                   <Input
                     type="password"
                     placeholder="Create a strong password"
+                    autoComplete="new-password"
                     {...field}
                     disabled={isLoading}
                     className="h-11"
