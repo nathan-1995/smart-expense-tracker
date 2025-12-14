@@ -228,3 +228,83 @@ export interface InvoiceStats {
   paid_amount: number;
   outstanding_amount: number;
 }
+
+// Admin types
+export interface AdminUser extends User {
+  account_age_days: number;
+  is_locked: boolean;
+  failed_login_attempts: number;
+  locked_until: string | null;
+  verified_at: string | null;
+}
+
+export interface AdminUserUpdate {
+  first_name?: string;
+  last_name?: string;
+  business_name?: string;
+  phone?: string;
+  is_active?: boolean;
+  is_superuser?: boolean;
+}
+
+export interface AdminUserListResponse {
+  users: AdminUser[];
+  total: number;
+  skip: number;
+  limit: number;
+}
+
+export interface AdminStatistics {
+  total_users: number;
+  verified_users: number;
+  unverified_users: number;
+  active_users: number;
+  locked_users: number;
+  superusers: number;
+  users_created_today: number;
+  users_created_this_week: number;
+  users_created_this_month: number;
+  active_banners: number;
+}
+
+// System Banner types
+export type BannerType = "info" | "success" | "warning" | "error" | "maintenance";
+
+export interface SystemBanner {
+  id: string;
+  message: string;
+  banner_type: BannerType;
+  show_to_unverified_only: boolean;
+  action_url: string | null;
+  action_text: string | null;
+  is_dismissible: boolean;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SystemBannerCreate {
+  message: string;
+  banner_type?: BannerType;
+  show_to_unverified_only?: boolean;
+  action_url?: string | null;
+  action_text?: string | null;
+  is_dismissible?: boolean;
+}
+
+export interface SystemBannerUpdate {
+  message?: string;
+  banner_type?: BannerType;
+  is_active?: boolean;
+  show_to_unverified_only?: boolean;
+  action_url?: string | null;
+  action_text?: string | null;
+  is_dismissible?: boolean;
+}
+
+export interface SystemBannerListResponse {
+  banners: SystemBanner[];
+  total: number;
+  skip: number;
+  limit: number;
+}

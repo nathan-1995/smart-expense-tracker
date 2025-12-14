@@ -7,6 +7,7 @@ import { Sidebar } from "@/components/dashboard/Sidebar";
 import { Header } from "@/components/dashboard/Header";
 import { HamburgerMenu } from "@/components/ui/hamburger-menu";
 import VerificationBanner from "@/components/dashboard/VerificationBanner";
+import SystemBanners from "@/components/dashboard/SystemBanners";
 import LoadingScreen from "@/components/LoadingScreen";
 import { cn } from "@/lib/utils";
 
@@ -84,6 +85,7 @@ export default function DashboardLayout({
       <div className="flex-1 flex flex-col min-w-0">
         <Header onMenuClick={toggleSidebar} isSidebarOpen={isSidebarOpen} />
         <main className="flex-1 p-6">
+          <SystemBanners />
           {user && !user.is_verified && (
             <VerificationBanner userEmail={user.email} />
           )}

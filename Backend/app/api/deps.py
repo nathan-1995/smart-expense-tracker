@@ -126,3 +126,35 @@ async def get_verified_user(
         )
 
     return current_user
+
+
+async def get_admin_user(
+    current_user: User = Depends(get_current_user)
+) -> User:
+    """
+    Dependency to get current admin user.
+
+    Ensures the user has admin (superuser) privileges before allowing
+    access to admin-only operations.
+
+    Args:
+        current_user: Current user from get_current_user dependency
+
+    Returns:
+        Current admin User object
+
+    Raises:
+        HTTPException: 403 if user is not a superuser
+
+    Usage:
+        @app.get("/admin/users")
+        async def list_all_users(admin: User = Depends(get_admin_user)):
+            return {"admin_id": admin.id}
+    """
+    if not current_user.is_superuser:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required. You do not have permission to access this resource.",
+        )
+
+    return current_user

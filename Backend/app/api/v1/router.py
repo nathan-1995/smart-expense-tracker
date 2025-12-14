@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import auth, users, clients, invoices
+from app.api.v1.endpoints import auth, users, clients, invoices, admin, banners
 
 
 # Create main API v1 router
@@ -32,4 +32,18 @@ api_router.include_router(
     invoices.router,
     prefix="/invoices",
     tags=["Invoices"]
+)
+
+# Include admin endpoints
+api_router.include_router(
+    admin.router,
+    prefix="/admin",
+    tags=["Admin"]
+)
+
+# Include system banner endpoints
+api_router.include_router(
+    banners.router,
+    prefix="/banners",
+    tags=["System Banners"]
 )
