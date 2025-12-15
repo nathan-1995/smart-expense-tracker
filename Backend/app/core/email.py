@@ -1,22 +1,19 @@
 """
-Email service for sending transactional emails via AWS SES.
+Email service for sending transactional emails via Zoho ZeptoMail.
 
 This module handles sending verification emails, password resets,
-and other transactional emails using AWS Simple Email Service (SES).
+and other transactional emails using ZeptoMail API.
 """
-import smtplib
 import secrets
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+import httpx
 from datetime import datetime, timedelta
 from typing import Optional
-from pathlib import Path
 
 from app.core.config import settings
 
 
 class EmailService:
-    """Service for sending emails via AWS SES SMTP."""
+    """Service for sending emails via Zoho ZeptoMail API."""
 
     @staticmethod
     def generate_verification_token() -> str:
@@ -43,63 +40,76 @@ class EmailService:
         to_email: str,
         subject: str,
         html_body: str,
-        text_body: Optional[str] = None
+        text_body: Optional[str] = None,
+        to_name: Optional[str] = None
     ) -> bool:
         """
-        Send an email via AWS SES SMTP.
+        Send an email via ZeptoMail API.
 
         Args:
             to_email: Recipient email address
             subject: Email subject line
             html_body: HTML email content
             text_body: Plain text fallback (optional)
+            to_name: Recipient name (optional)
 
         Returns:
             bool: True if sent successfully, False otherwise
 
         Raises:
-            Exception: If SMTP configuration is missing
+            Exception: If ZeptoMail configuration is missing
         """
-        # Validate SMTP configuration
+        # Validate ZeptoMail configuration
         if not all([
-            settings.SMTP_HOST,
-            settings.SMTP_PORT,
-            settings.SMTP_USERNAME,
-            settings.SMTP_PASSWORD,
+            settings.ZEPTOMAIL_API_KEY,
             settings.FROM_EMAIL
         ]):
-            raise Exception("SMTP configuration is incomplete. Check environment variables.")
+            raise Exception("ZeptoMail configuration is incomplete. Check environment variables.")
 
         try:
-            # Create message
-            message = MIMEMultipart("alternative")
-            message["Subject"] = subject
-            message["From"] = f"FinTrack <{settings.FROM_EMAIL}>"
-            message["To"] = to_email
+            # Prepare the request payload
+            payload = {
+                "from": {
+                    "address": settings.FROM_EMAIL,
+                    "name": "FinTrack"
+                },
+                "to": [
+                    {
+                        "email_address": {
+                            "address": to_email,
+                            "name": to_name or to_email
+                        }
+                    }
+                ],
+                "subject": subject,
+                "htmlbody": html_body
+            }
 
-            # Add SES Configuration Set for bounce/complaint tracking
-            message.add_header("X-SES-CONFIGURATION-SET", "fintrack-production")
-
-            # Add headers for better deliverability and compliance
-            message.add_header("List-Unsubscribe", f"<{settings.FRONTEND_URL}/unsubscribe>")
-            message.add_header("List-Unsubscribe-Post", "List-Unsubscribe=One-Click")
-
-            # Add plain text part (fallback)
+            # Add text body if provided
             if text_body:
-                text_part = MIMEText(text_body, "plain")
-                message.attach(text_part)
+                payload["textbody"] = text_body
 
-            # Add HTML part
-            html_part = MIMEText(html_body, "html")
-            message.attach(html_part)
+            # Set up headers
+            headers = {
+                "accept": "application/json",
+                "content-type": "application/json",
+                "authorization": settings.ZEPTOMAIL_API_KEY
+            }
 
-            # Connect to SMTP server and send
-            with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
-                server.starttls()  # Upgrade to secure connection
-                server.login(settings.SMTP_USERNAME, settings.SMTP_PASSWORD)
-                server.sendmail(settings.FROM_EMAIL, to_email, message.as_string())
+            # Send the email via ZeptoMail API
+            with httpx.Client(timeout=30.0) as client:
+                response = client.post(
+                    settings.ZEPTOMAIL_API_URL,
+                    json=payload,
+                    headers=headers
+                )
 
-            return True
+                # Check if successful (2xx status code)
+                if response.status_code in range(200, 300):
+                    return True
+                else:
+                    print(f"ZeptoMail API error: {response.status_code} - {response.text}")
+                    return False
 
         except Exception as e:
             # Log error (in production, use proper logging)
@@ -216,7 +226,8 @@ This link will expire in 24 hours. If you didn't create a FinTrack account, you 
             to_email=to_email,
             subject=subject,
             html_body=html_body,
-            text_body=text_body
+            text_body=text_body,
+            to_name=first_name
         )
 
     @staticmethod
@@ -319,5 +330,6 @@ This link will expire in 1 hour. If you didn't request a password reset, you can
             to_email=to_email,
             subject=subject,
             html_body=html_body,
-            text_body=text_body
+            text_body=text_body,
+            to_name=first_name
         )
