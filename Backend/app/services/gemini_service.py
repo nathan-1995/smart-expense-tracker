@@ -303,6 +303,8 @@ Rules:
 
             # Build URL with API key - use model from settings
             url = f"{GeminiService.API_BASE_URL}/models/{settings.GEMINI_MODEL}:generateContent"
+            if not settings.GEMINI_API_KEY:
+                raise DocumentProcessingError(detail="GEMINI_API_KEY is not configured on the server.")
 
             # Make request to Gemini API
             async with httpx.AsyncClient(timeout=GeminiService.TIMEOUT_SECONDS) as client:

@@ -73,7 +73,7 @@ class Settings(BaseSettings):
     FRONTEND_URL: str = "https://fintracker.cc"
 
     # Google Gemini API Configuration
-    GEMINI_API_KEY: str
+    GEMINI_API_KEY: str | None = None
     GEMINI_MODEL: str = "gemini-2.5-flash"
 
     # Document Processing Configuration
