@@ -60,6 +60,13 @@ jobs:
           cd Backend
           zip -r deploy.zip Dockerrun.aws.json .ebextensions .platform
 
+      - name: Verify deployment package contents
+        run: |
+          cd Backend
+          unzip -l deploy.zip
+          unzip -l deploy.zip | grep -q '\.ebextensions/05_nginx_ssl_systemd_dropin\.config' || (echo "Missing systemd/nginx hardening config in deploy.zip" && exit 1)
+          unzip -l deploy.zip | grep -q '\.platform/hooks/postdeploy/00_configure_ssl\.sh' || (echo "Missing postdeploy SSL hook in deploy.zip" && exit 1)
+
       - name: Deploy to Elastic Beanstalk
         run: |
           # Create application version
@@ -150,7 +157,7 @@ jobs:
             --output text)
 
           echo "========================================="
-          echo "🚀 Deployment Successful!"
+          echo "ðŸš€ Deployment Successful!"
           echo "========================================="
           echo "Environment: ${{ env.ENVIRONMENT }}"
           echo "Branch: ${{ env.BRANCH }}"
