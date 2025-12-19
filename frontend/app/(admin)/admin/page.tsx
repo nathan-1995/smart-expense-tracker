@@ -40,8 +40,11 @@ import {
   AlertTriangle,
   XCircle,
   Settings,
+  BarChart3,
+  LogOut,
 } from "lucide-react";
 import { toast } from "sonner";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function AdminPage() {
   const { user, logout } = useAuth();
@@ -302,11 +305,17 @@ export default function AdminPage() {
           <h1 className="text-3xl font-bold">Admin Panel</h1>
           <p className="text-muted-foreground">Manage users and system settings</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          <ThemeToggle />
+          <Button variant="outline" onClick={() => router.push("/admin/api-usage")}>
+            <BarChart3 className="h-4 w-4 mr-2" />
+            API Usage
+          </Button>
           <Button variant="outline" onClick={() => router.push("/dashboard")}>
             Go to Dashboard
           </Button>
-          <Button variant="destructive" onClick={logout}>
+          <Button variant="outline" onClick={logout}>
+            <LogOut className="h-4 w-4 mr-2" />
             Logout
           </Button>
         </div>

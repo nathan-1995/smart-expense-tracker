@@ -21,6 +21,8 @@ import {
   MoreVertical,
   LogOut,
   Shield,
+  Upload,
+  CreditCard,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -65,6 +67,38 @@ const menuItems: MenuItem[] = [
         href: "/clients/new",
         label: "Add Client",
         icon: Plus,
+      },
+    ],
+  },
+  {
+    label: "Bank Accounts",
+    icon: Banknote,
+    children: [
+      {
+        href: "/bank-accounts",
+        label: "View All",
+        icon: List,
+      },
+      {
+        href: "/bank-accounts#add",
+        label: "Add Account",
+        icon: Plus,
+      },
+    ],
+  },
+  {
+    label: "Transactions",
+    icon: CreditCard,
+    children: [
+      {
+        href: "/transactions",
+        label: "View All",
+        icon: List,
+      },
+      {
+        href: "/transactions#upload",
+        label: "Upload Statement",
+        icon: Upload,
       },
     ],
   },

@@ -308,3 +308,271 @@ export interface SystemBannerListResponse {
   skip: number;
   limit: number;
 }
+
+// Document types
+export type DocumentType = "bank_statement" | "receipt" | "invoice_attachment" | "other";
+export type ProcessingStatus = "pending" | "processing" | "completed" | "failed";
+
+export interface Document {
+  id: string;
+  document_type: DocumentType;
+  original_filename: string;
+  file_size_bytes: number;
+  status: ProcessingStatus;
+  processing_started_at: string | null;
+  processing_completed_at: string | null;
+  error_message: string | null;
+  transactions_count: number;
+  created_at: string;
+}
+
+export interface DocumentListResponse {
+  documents: Document[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
+export interface DocumentExtractionResult {
+  transactions: TransactionExtracted[];
+  metadata?: {
+    account_holder?: string;
+    account_number_last4?: string;
+    statement_period?: string;
+    total_transactions?: number;
+  };
+}
+
+// Transaction types
+export type TransactionType = "debit" | "credit";
+export type TransactionCategory =
+  | "uncategorized"
+  | "salary"
+  | "rent"
+  | "utilities"
+  | "food"
+  | "transportation"
+  | "entertainment"
+  | "shopping"
+  | "healthcare"
+  | "business_expense"
+  | "investment"
+  | "transfer"
+  | "other";
+
+export interface TransactionExtracted {
+  transaction_date: string;
+  description: string;
+  amount: number;
+  transaction_type: TransactionType;
+  balance_after?: number;
+  category?: TransactionCategory;
+  merchant?: string;
+  account_last4?: string;
+  notes?: string;
+}
+
+export interface Transaction {
+  id: string;
+  user_id: string;
+  document_id: string | null;
+  transaction_date: string;
+  description: string;
+  amount: number;
+  transaction_type: TransactionType;
+  balance_after: number | null;
+  category: TransactionCategory;
+  merchant: string | null;
+  account_last4: string | null;
+  linked_invoice_id: string | null;
+  source_document_name: string | null;
+  notes: string | null;
+  is_manually_added: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TransactionCreate {
+  transaction_date: string;
+  description: string;
+  amount: number;
+  transaction_type: TransactionType;
+  balance_after?: number | null;
+  category?: TransactionCategory;
+  merchant?: string | null;
+  account_last4?: string | null;
+  notes?: string | null;
+}
+
+export interface TransactionUpdate {
+  transaction_date?: string;
+  description?: string;
+  amount?: number;
+  transaction_type?: TransactionType;
+  balance_after?: number | null;
+  category?: TransactionCategory;
+  merchant?: string | null;
+  account_last4?: string | null;
+  notes?: string | null;
+  linked_invoice_id?: string | null;
+}
+
+export interface TransactionListResponse {
+  transactions: Transaction[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
+export interface TransactionBulkImportRequest {
+  transactions: TransactionCreate[];
+}
+
+export interface TransactionStats {
+  total_transactions: number;
+  total_debits: number;
+  total_credits: number;
+  total_debit_amount: number;
+  total_credit_amount: number;
+  net_balance: number;
+  transactions_by_category: Record<string, number>;
+}
+
+// Bank Account types
+export type AccountType = "savings" | "current" | "credit_card" | "investment" | "other";
+export type Currency =
+  | "USD" | "EUR" | "GBP" | "JPY"
+  | "LKR" | "INR" | "PKR" | "BDT" | "NPR" | "CNY" | "SGD" | "MYR" | "THB" | "PHP" | "IDR" | "VND" | "KRW"
+  | "AED" | "SAR" | "QAR"
+  | "AUD" | "CAD" | "CHF" | "NZD" | "ZAR";
+
+export interface BankAccount {
+  id: string;
+  user_id: string;
+  account_name: string;
+  bank_name: string;
+  account_number_last4: string | null;
+  account_type: AccountType;
+  currency: Currency;
+  opening_balance: number | null;
+  current_balance: number | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  transaction_count?: number;
+  document_count?: number;
+}
+
+export interface BankAccountCreate {
+  account_name: string;
+  bank_name: string;
+  account_number_last4?: string | null;
+  account_type: AccountType;
+  currency: Currency;
+  opening_balance?: number | null;
+}
+
+export interface BankAccountUpdate {
+  account_name?: string;
+  bank_name?: string;
+  account_number_last4?: string | null;
+  account_type?: AccountType;
+  currency?: Currency;
+  opening_balance?: number | null;
+}
+
+export interface BankAccountListResponse {
+  bank_accounts: BankAccount[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
+export interface BankAccountStats {
+  account_id: string;
+  account_name: string;
+  currency: Currency;
+  current_balance: number | null;
+  total_transactions: number;
+  total_credits: number;
+  total_debits: number;
+  net_change: number;
+  last_transaction_date: string | null;
+}
+
+// ============================================
+// API Usage Types
+// ============================================
+
+export interface UserUsageStats {
+  user_id: string;
+  input_tokens: number;
+  output_tokens: number;
+  total_tokens: number;
+  request_count: number;
+  avg_duration_ms: number;
+}
+
+export interface DailyUsageStats {
+  date: string;
+  input_tokens: number;
+  output_tokens: number;
+  total_tokens: number;
+  request_count: number;
+  failed_requests: number;
+}
+
+export interface ServiceBreakdown {
+  service: string;
+  operation: string;
+  model_name: string;
+  total_tokens: number;
+  request_count: number;
+  avg_duration_ms: number;
+}
+
+export interface UserTodayUsage {
+  input_tokens: number;
+  output_tokens: number;
+  total_tokens: number;
+  request_count: number;
+}
+
+export interface APIUsageDetail {
+  id: string;
+  service: string;
+  operation: string;
+  model_name: string;
+  user_id: string | null;
+  document_id: string | null;
+  input_tokens: number;
+  output_tokens: number;
+  total_tokens: number;
+  status_code: number;
+  success: boolean;
+  error_message: string | null;
+  duration_ms: number | null;
+  created_at: string;
+}
+
+export interface UsageSummaryResponse {
+  total_tokens: number;
+  total_requests: number;
+  users: UserUsageStats[];
+}
+
+export interface DailyUsageResponse {
+  days: DailyUsageStats[];
+}
+
+export interface ServiceBreakdownResponse {
+  services: ServiceBreakdown[];
+}
+
+export interface RecentRequestsResponse {
+  requests: APIUsageDetail[];
+  count: number;
+}

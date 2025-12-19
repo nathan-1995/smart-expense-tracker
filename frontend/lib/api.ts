@@ -26,6 +26,25 @@ import {
   SystemBannerCreate,
   SystemBannerUpdate,
   SystemBannerListResponse,
+  Document,
+  DocumentListResponse,
+  DocumentExtractionResult,
+  Transaction,
+  TransactionCreate,
+  TransactionUpdate,
+  TransactionListResponse,
+  TransactionBulkImportRequest,
+  TransactionStats,
+  BankAccount,
+  BankAccountCreate,
+  BankAccountUpdate,
+  BankAccountListResponse,
+  Currency,
+  UsageSummaryResponse,
+  DailyUsageResponse,
+  ServiceBreakdownResponse,
+  RecentRequestsResponse,
+  UserTodayUsage,
 } from "./types";
 import { getAccessToken, getRefreshToken, setTokens, removeTokens } from "./auth";
 
@@ -352,6 +371,206 @@ export const bannerApi = {
   // Admin: Deactivate banner
   deactivateBanner: async (bannerId: string): Promise<SystemBanner> => {
     const response = await apiClient.post<SystemBanner>(`/banners/${bannerId}/deactivate`);
+    return response.data;
+  },
+};
+
+// Document API
+export const documentApi = {
+  // Upload document for processing
+  uploadDocument: async (
+    file: File,
+    documentType: string = "bank_statement",
+    bankAccountId?: string,
+    emailNotification: boolean = false
+  ): Promise<Document> => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    let url = `/documents/upload?document_type=${documentType}&email_notification=${emailNotification}`;
+    if (bankAccountId) {
+      url += `&bank_account_id=${bankAccountId}`;
+    }
+
+    const response = await apiClient.post<Document>(url, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    return response.data;
+  },
+
+  // Get document status
+  getDocumentStatus: async (documentId: string): Promise<Document> => {
+    const response = await apiClient.get<Document>(`/documents/${documentId}`);
+    return response.data;
+  },
+
+  // List all documents
+  listDocuments: async (params?: {
+    page?: number;
+    page_size?: number;
+    document_type?: string;
+    status_filter?: string;
+  }): Promise<DocumentListResponse> => {
+    const response = await apiClient.get<DocumentListResponse>("/documents", { params });
+    return response.data;
+  },
+
+  // Delete document
+  deleteDocument: async (documentId: string): Promise<void> => {
+    await apiClient.delete(`/documents/${documentId}`);
+  },
+
+  // Get extraction results for review
+  getExtractionResults: async (documentId: string): Promise<DocumentExtractionResult> => {
+    const response = await apiClient.get<DocumentExtractionResult>(`/documents/${documentId}/extraction`);
+    return response.data;
+  },
+};
+
+// Transaction API
+export const transactionApi = {
+  // Create manual transaction
+  createTransaction: async (data: TransactionCreate): Promise<Transaction> => {
+    const response = await apiClient.post<Transaction>("/transactions", data);
+    return response.data;
+  },
+
+  // Bulk import transactions from review screen
+  bulkImportTransactions: async (
+    documentId: string,
+    data: TransactionBulkImportRequest
+  ): Promise<{ message: string; count: number; document_id: string }> => {
+    const response = await apiClient.post(
+      `/transactions/bulk-import?document_id=${documentId}`,
+      data
+    );
+    return response.data;
+  },
+
+  // List transactions with filters
+  listTransactions: async (params?: {
+    page?: number;
+    page_size?: number;
+    transaction_type?: string;
+    category?: string;
+    start_date?: string;
+    end_date?: string;
+    document_id?: string;
+  }): Promise<TransactionListResponse> => {
+    const response = await apiClient.get<TransactionListResponse>("/transactions", { params });
+    return response.data;
+  },
+
+  // Get transaction statistics
+  getTransactionStats: async (): Promise<TransactionStats> => {
+    const response = await apiClient.get<TransactionStats>("/transactions/stats");
+    return response.data;
+  },
+
+  // Get single transaction
+  getTransaction: async (transactionId: string): Promise<Transaction> => {
+    const response = await apiClient.get<Transaction>(`/transactions/${transactionId}`);
+    return response.data;
+  },
+
+  // Update transaction
+  updateTransaction: async (transactionId: string, data: TransactionUpdate): Promise<Transaction> => {
+    const response = await apiClient.put<Transaction>(`/transactions/${transactionId}`, data);
+    return response.data;
+  },
+
+  // Delete transaction
+  deleteTransaction: async (transactionId: string): Promise<void> => {
+    await apiClient.delete(`/transactions/${transactionId}`);
+  },
+};
+
+// Bank Account API
+export const bankAccountApi = {
+  // Create bank account
+  createBankAccount: async (data: BankAccountCreate): Promise<BankAccount> => {
+    const response = await apiClient.post<BankAccount>("/bank-accounts", data);
+    return response.data;
+  },
+
+  // Get all bank accounts with pagination and filters
+  getBankAccounts: async (params?: {
+    page?: number;
+    page_size?: number;
+    is_active?: boolean;
+    currency?: Currency;
+  }): Promise<BankAccountListResponse> => {
+    const response = await apiClient.get<BankAccountListResponse>("/bank-accounts", { params });
+    return response.data;
+  },
+
+  // Get active bank accounts (for dropdowns)
+  getActiveBankAccounts: async (): Promise<BankAccount[]> => {
+    const response = await apiClient.get<BankAccount[]>("/bank-accounts/active");
+    return response.data;
+  },
+
+  // Get single bank account
+  getBankAccount: async (bankAccountId: string): Promise<BankAccount> => {
+    const response = await apiClient.get<BankAccount>(`/bank-accounts/${bankAccountId}`);
+    return response.data;
+  },
+
+  // Update bank account
+  updateBankAccount: async (bankAccountId: string, data: BankAccountUpdate): Promise<BankAccount> => {
+    const response = await apiClient.put<BankAccount>(`/bank-accounts/${bankAccountId}`, data);
+    return response.data;
+  },
+
+  // Delete bank account
+  deleteBankAccount: async (bankAccountId: string): Promise<void> => {
+    await apiClient.delete(`/bank-accounts/${bankAccountId}`);
+  },
+
+  // Deactivate bank account (soft delete)
+  deactivateBankAccount: async (bankAccountId: string): Promise<BankAccount> => {
+    const response = await apiClient.post<BankAccount>(`/bank-accounts/${bankAccountId}/deactivate`);
+    return response.data;
+  },
+};
+
+// API Usage API
+export const apiUsageApi = {
+  // Get usage summary for all users (admin only)
+  getUsageSummary: async (params?: { start_date?: string; end_date?: string; limit?: number }): Promise<UsageSummaryResponse> => {
+    const response = await apiClient.get<UsageSummaryResponse>("/api-usage/summary", { params });
+    return response.data;
+  },
+
+  // Get daily usage trends (admin only)
+  getDailyUsage: async (days?: number): Promise<DailyUsageResponse> => {
+    const response = await apiClient.get<DailyUsageResponse>("/api-usage/daily", { params: { days } });
+    return response.data;
+  },
+
+  // Get service breakdown (admin only)
+  getServiceBreakdown: async (params?: { start_date?: string; end_date?: string }): Promise<ServiceBreakdownResponse> => {
+    const response = await apiClient.get<ServiceBreakdownResponse>("/api-usage/services", { params });
+    return response.data;
+  },
+
+  // Get recent API requests (admin only)
+  getRecentRequests: async (params?: { user_id?: string; limit?: number }): Promise<RecentRequestsResponse> => {
+    const response = await apiClient.get<RecentRequestsResponse>("/api-usage/recent", { params });
+    return response.data;
+  },
+
+  // Get today's usage for a specific user (admin only)
+  getUserTodayUsage: async (userId: string): Promise<UserTodayUsage> => {
+    const response = await apiClient.get<UserTodayUsage>(`/api-usage/users/${userId}/today`);
+    return response.data;
+  },
+
+  // Get today's usage for current user
+  getMyTodayUsage: async (): Promise<UserTodayUsage> => {
+    const response = await apiClient.get<UserTodayUsage>("/api-usage/me/today");
     return response.data;
   },
 };
