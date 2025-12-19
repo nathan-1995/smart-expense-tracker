@@ -4,7 +4,7 @@
  * Connects to the backend WebSocket endpoint and handles real-time events
  * like document completion notifications.
  */
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { getAccessToken } from '@/lib/auth';
 
 const WS_URL = process.env.NEXT_PUBLIC_API_URL?.replace('http', 'ws') || 'ws://localhost:8000/api/v1';
@@ -31,6 +31,13 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 5;
   const reconnectDelay = 3000; // 3 seconds
+  const optionsRef = useRef(options);
+  const [isConnected, setIsConnected] = useState(false);
+
+  // Keep options ref up to date
+  useEffect(() => {
+    optionsRef.current = options;
+  }, [options]);
 
   const connect = useCallback(() => {
     const token = getAccessToken();
@@ -54,8 +61,9 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 
       ws.current.onopen = () => {
         console.log('WebSocket connected');
+        setIsConnected(true);
         reconnectAttempts.current = 0; // Reset reconnect attempts on successful connection
-        options.onConnect?.();
+        optionsRef.current.onConnect?.();
 
         // Send ping every 30 seconds to keep connection alive
         const pingInterval = setInterval(() => {
@@ -81,7 +89,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
           switch (message.type) {
             case 'document_completed':
               if (message.document_id && message.filename && message.message) {
-                options.onDocumentCompleted?.({
+                optionsRef.current.onDocumentCompleted?.({
                   document_id: message.document_id,
                   filename: message.filename,
                   message: message.message
@@ -90,7 +98,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
               break;
             case 'banner_update':
               if (message.banners) {
-                options.onBannerUpdate?.({
+                optionsRef.current.onBannerUpdate?.({
                   banners: message.banners
                 });
               }
@@ -106,12 +114,13 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 
       ws.current.onerror = (error) => {
         console.error('WebSocket error:', error);
-        options.onError?.(error);
+        optionsRef.current.onError?.(error);
       };
 
       ws.current.onclose = (event) => {
         console.log('WebSocket closed:', event.code, event.reason);
-        options.onDisconnect?.();
+        setIsConnected(false);
+        optionsRef.current.onDisconnect?.();
 
         // Attempt to reconnect if not a normal closure and under max attempts
         if (event.code !== 1000 && reconnectAttempts.current < maxReconnectAttempts) {
@@ -129,7 +138,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     } catch (error) {
       console.error('Error creating WebSocket connection:', error);
     }
-  }, [options.onConnect, options.onDisconnect, options.onError, options.onDocumentCompleted, options.onBannerUpdate]);
+  }, []);
 
   const disconnect = useCallback(() => {
     if (reconnectTimeout.current) {
@@ -140,6 +149,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       ws.current.close(1000, 'Client disconnecting');
       ws.current = null;
     }
+    setIsConnected(false);
   }, []);
 
   // Connect on mount, disconnect on unmount
@@ -154,6 +164,6 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
   return {
     connect,
     disconnect,
-    isConnected: ws.current?.readyState === WebSocket.OPEN
+    isConnected
   };
 }
