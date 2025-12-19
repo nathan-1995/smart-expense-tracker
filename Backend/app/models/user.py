@@ -67,6 +67,10 @@ class User(BaseModel):
     # Relationships
     clients = relationship("Client", back_populates="user", cascade="all, delete-orphan")
     invoices = relationship("Invoice", back_populates="user", cascade="all, delete-orphan")
+    documents = relationship("Document", back_populates="user", cascade="all, delete-orphan")
+    transactions = relationship("Transaction", back_populates="user", cascade="all, delete-orphan")
+    bank_accounts = relationship("BankAccount", back_populates="user", cascade="all, delete-orphan")
+    api_usage = relationship("APIUsage", back_populates="user", cascade="all, delete-orphan")
 
     # Constraints
     __table_args__ = (

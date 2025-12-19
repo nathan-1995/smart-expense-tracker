@@ -1,5 +1,5 @@
 from typing import AsyncGenerator
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Query, WebSocket
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -126,6 +126,40 @@ async def get_verified_user(
         )
 
     return current_user
+
+
+async def get_current_user_ws(
+    websocket: WebSocket,
+    token: str = Query(..., description="JWT access token for WebSocket authentication"),
+    db: AsyncSession = Depends(get_db)
+) -> User:
+    """
+    Dependency to get current authenticated user from WebSocket query parameter.
+
+    WebSockets cannot use HTTP headers for authentication, so we pass the token
+    as a query parameter: ws://localhost:8000/ws?token=<access_token>
+
+    Args:
+        websocket: WebSocket connection
+        token: JWT access token from query parameter
+        db: Database session
+
+    Returns:
+        Current authenticated User object
+
+    Raises:
+        WebSocketException: 1008 if token is invalid or user not found
+    """
+    try:
+        user = await AuthService.verify_access_token(db, token)
+        return user
+    except (InvalidTokenError, InactiveUserError) as e:
+        # Close WebSocket with error code
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(e)
+        )
 
 
 async def get_admin_user(

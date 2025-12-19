@@ -51,6 +51,7 @@ class Invoice(Base):
     user = relationship("User", back_populates="invoices")
     client = relationship("Client", back_populates="invoices")
     items = relationship("InvoiceItem", back_populates="invoice", cascade="all, delete-orphan")
+    transactions = relationship("Transaction", back_populates="linked_invoice")
 
     __table_args__ = (
         CheckConstraint("status IN ('draft', 'sent', 'paid', 'overdue', 'cancelled')", name="invoices_status_check"),

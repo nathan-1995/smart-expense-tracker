@@ -37,7 +37,7 @@ class SystemBanner(BaseModel):
 
     # Banner type determines color and icon
     banner_type = Column(
-        SQLEnum(BannerType),
+        SQLEnum(BannerType, values_callable=lambda x: [e.value for e in x]),
         nullable=False,
         default=BannerType.INFO,
         comment="Banner urgency/type (determines color)"

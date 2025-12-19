@@ -12,6 +12,7 @@ from app.schemas.system_banner import (
     SystemBannerListResponse,
 )
 from app.repositories.system_banner_repository import SystemBannerRepository
+from app.core.websocket_manager import manager
 
 
 router = APIRouter()
@@ -99,6 +100,11 @@ async def create_banner(
         }
     """
     banner = await SystemBannerRepository.create(db, banner_data)
+
+    # Notify all connected users to refresh their banners
+    # Clients will refetch using /active endpoint which filters by verification status
+    await manager.broadcast_banner_update([])
+
     return SystemBannerResponse.model_validate(banner)
 
 
@@ -227,6 +233,9 @@ async def update_banner(
             detail="Banner not found"
         )
 
+    # Notify all connected users to refresh their banners
+    await manager.broadcast_banner_update([])
+
     return SystemBannerResponse.model_validate(banner)
 
 
@@ -262,6 +271,9 @@ async def delete_banner(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Banner not found"
         )
+
+    # Notify all connected users to refresh their banners
+    await manager.broadcast_banner_update([])
 
 
 @router.post("/{banner_id}/deactivate", response_model=SystemBannerResponse)
@@ -299,5 +311,8 @@ async def deactivate_banner(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Banner not found"
         )
+
+    # Notify all connected users to refresh their banners
+    await manager.broadcast_banner_update([])
 
     return SystemBannerResponse.model_validate(banner)

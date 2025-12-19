@@ -82,3 +82,13 @@ class InvalidRefreshTokenError(HTTPException):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=detail,
         )
+
+
+class DocumentProcessingError(HTTPException):
+    """Raised when document processing fails."""
+
+    def __init__(self, detail: str = "Document processing failed"):
+        super().__init__(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=detail,
+        )
