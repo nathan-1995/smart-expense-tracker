@@ -23,13 +23,13 @@ const WebSocketContext = createContext<WebSocketContextType | null>(null);
 
 export function WebSocketProvider({ children }: { children: ReactNode }) {
   const ws = useRef<WebSocket | null>(null);
-  const reconnectTimeout = useRef<NodeJS.Timeout>();
+  const reconnectTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
   const reconnectAttempts = useRef(0);
   const subscribers = useRef<Set<(message: WebSocketMessage) => void>>(new Set());
   const maxReconnectAttempts = 5;
   const reconnectDelay = 3000;
   const isConnectedRef = useRef(false);
-  const pingInterval = useRef<NodeJS.Timeout>();
+  const pingInterval = useRef<NodeJS.Timeout | undefined>(undefined);
   const isUnmounted = useRef(false);
 
   const connect = useCallback(() => {
