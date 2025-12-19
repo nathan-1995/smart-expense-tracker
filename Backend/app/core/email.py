@@ -333,3 +333,105 @@ This link will expire in 1 hour. If you didn't request a password reset, you can
             text_body=text_body,
             to_name=first_name
         )
+
+    @staticmethod
+    def send_document_processed_email(
+        to_email: str,
+        first_name: str,
+        document_filename: str,
+        document_id: str,
+        frontend_url: str
+    ) -> bool:
+        """
+        Send notification that document processing is complete.
+
+        Args:
+            to_email: User's email address
+            first_name: User's first name
+            document_filename: Name of the processed document
+            document_id: Document UUID
+            frontend_url: Frontend base URL
+
+        Returns:
+            bool: True if sent successfully
+        """
+        review_link = f"{frontend_url}/transactions/review/{document_id}"
+
+        subject = "Your bank statement is ready for review"
+
+        html_body = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+    <table role="presentation" style="width: 100%; border-collapse: collapse;">
+        <tr>
+            <td align="center" style="padding: 40px 0;">
+                <table role="presentation" style="width: 600px; border-collapse: collapse; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <tr>
+                        <td style="padding: 40px 40px 20px 40px; text-align: center;">
+                            <h1 style="margin: 0; font-size: 24px; font-weight: 600; color: #1a1a1a;">Document Processing Complete</h1>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 0 40px 40px 40px;">
+                            <p style="margin: 0 0 16px 0; font-size: 16px; line-height: 24px; color: #4a4a4a;">
+                                Hi {first_name},
+                            </p>
+                            <p style="margin: 0 0 24px 0; font-size: 16px; line-height: 24px; color: #4a4a4a;">
+                                Your bank statement has been processed and is ready for review.
+                            </p>
+                            <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                                <tr>
+                                    <td align="center" style="padding: 20px 0;">
+                                        <a href="{review_link}" style="display: inline-block; padding: 14px 32px; background-color: #2563eb; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 500; font-size: 16px;">Review Transactions</a>
+                                    </td>
+                                </tr>
+                            </table>
+                            <p style="margin: 24px 0 0 0; font-size: 14px; line-height: 20px; color: #6b7280;">
+                                Or copy and paste this link into your browser:
+                            </p>
+                            <p style="margin: 8px 0 0 0; font-size: 14px; line-height: 20px; color: #2563eb; word-break: break-all;">
+                                {review_link}
+                            </p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 20px 40px; background-color: #f9fafb; border-top: 1px solid #e5e7eb; border-radius: 0 0 8px 8px;">
+                            <p style="margin: 0; font-size: 12px; line-height: 18px; color: #9ca3af; text-align: center;">
+                                &copy; {datetime.utcnow().year} FinTrack. All rights reserved.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+"""
+
+        text_body = f"""
+Document Processing Complete
+
+Hi {first_name},
+
+Your bank statement has been processed and is ready for review.
+
+Review your transactions here:
+{review_link}
+
+---
+© {datetime.utcnow().year} FinTrack. All rights reserved.
+"""
+
+        return EmailService.send_email(
+            to_email=to_email,
+            subject=subject,
+            html_body=html_body,
+            text_body=text_body,
+            to_name=first_name
+        )

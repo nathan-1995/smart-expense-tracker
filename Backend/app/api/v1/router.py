@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import auth, users, clients, invoices, admin, banners
+from app.api.v1.endpoints import auth, users, clients, invoices, admin, banners, documents, transactions, bank_accounts, api_usage, websocket
 
 
 # Create main API v1 router
@@ -46,4 +46,38 @@ api_router.include_router(
     banners.router,
     prefix="/banners",
     tags=["System Banners"]
+)
+
+# Include document endpoints
+api_router.include_router(
+    documents.router,
+    prefix="/documents",
+    tags=["Documents"]
+)
+
+# Include transaction endpoints
+api_router.include_router(
+    transactions.router,
+    prefix="/transactions",
+    tags=["Transactions"]
+)
+
+# Include bank account endpoints
+api_router.include_router(
+    bank_accounts.router,
+    prefix="/bank-accounts",
+    tags=["Bank Accounts"]
+)
+
+# Include API usage endpoints
+api_router.include_router(
+    api_usage.router,
+    prefix="/api-usage",
+    tags=["API Usage"]
+)
+
+# Include WebSocket endpoint (no prefix, just /ws)
+api_router.include_router(
+    websocket.router,
+    tags=["WebSocket"]
 )

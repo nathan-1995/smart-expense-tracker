@@ -72,6 +72,14 @@ class Settings(BaseSettings):
     # Frontend URL (for email links)
     FRONTEND_URL: str = "https://fintracker.cc"
 
+    # Google Gemini API Configuration
+    GEMINI_API_KEY: str | None = None
+    GEMINI_MODEL: str = "gemini-2.5-flash"
+
+    # Document Processing Configuration
+    MAX_DOCUMENT_SIZE_MB: int = 10
+    DOCUMENT_PROCESSING_TIMEOUT_SECONDS: int = 45
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

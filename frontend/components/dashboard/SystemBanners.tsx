@@ -5,21 +5,24 @@ import { X, Info, CheckCircle, AlertTriangle, XCircle, Settings, ExternalLink } 
 import { bannerApi } from "@/lib/api";
 import { SystemBanner, BannerType } from "@/lib/types";
 import { Button } from "@/components/ui/button";
+import { useWebSocketContext } from "@/contexts/WebSocketContext";
 
 export default function SystemBanners() {
   const [banners, setBanners] = useState<SystemBanner[]>([]);
   const [dismissedBanners, setDismissedBanners] = useState<string[]>([]);
+  const { subscribe } = useWebSocketContext();
+
+  const fetchBanners = async () => {
+    try {
+      const data = await bannerApi.getActiveBanners();
+      setBanners(data);
+    } catch (error) {
+      console.error("Failed to fetch banners:", error);
+    }
+  };
 
   useEffect(() => {
-    const fetchBanners = async () => {
-      try {
-        const data = await bannerApi.getActiveBanners();
-        setBanners(data);
-      } catch (error) {
-        console.error("Failed to fetch banners:", error);
-      }
-    };
-
+    // Initial fetch on mount
     fetchBanners();
 
     // Load dismissed banners from localStorage
@@ -28,10 +31,13 @@ export default function SystemBanners() {
       setDismissedBanners(JSON.parse(dismissed));
     }
 
-    // Poll for new banners every 10 seconds
-    const pollInterval = setInterval(() => {
-      fetchBanners();
-    }, 10000);
+    // Subscribe to WebSocket banner updates
+    const unsubscribe = subscribe((message) => {
+      if (message.type === 'banner_update') {
+        console.log("Received banner update notification via WebSocket");
+        fetchBanners();
+      }
+    });
 
     // Listen for custom banner update events (triggered by admin panel)
     const handleBannerUpdate = () => {
@@ -40,10 +46,10 @@ export default function SystemBanners() {
     window.addEventListener("bannersUpdated", handleBannerUpdate);
 
     return () => {
-      clearInterval(pollInterval);
+      unsubscribe();
       window.removeEventListener("bannersUpdated", handleBannerUpdate);
     };
-  }, []);
+  }, [subscribe]);
 
   const handleDismiss = (bannerId: string) => {
     const newDismissed = [...dismissedBanners, bannerId];

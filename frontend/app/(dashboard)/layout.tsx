@@ -9,6 +9,7 @@ import { HamburgerMenu } from "@/components/ui/hamburger-menu";
 import VerificationBanner from "@/components/dashboard/VerificationBanner";
 import SystemBanners from "@/components/dashboard/SystemBanners";
 import LoadingScreen from "@/components/LoadingScreen";
+import { WebSocketProvider } from "@/contexts/WebSocketContext";
 import { cn } from "@/lib/utils";
 
 export default function DashboardLayout({
@@ -43,6 +44,7 @@ export default function DashboardLayout({
   }
 
   return (
+    <WebSocketProvider>
     <div className="flex min-h-screen bg-background">
       {/* Desktop Sidebar - Part of layout, pushes content */}
       <aside
@@ -93,5 +95,6 @@ export default function DashboardLayout({
         </main>
       </div>
     </div>
+    </WebSocketProvider>
   );
 }
