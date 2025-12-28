@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useRef, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useCallback, ReactNode, useState, useMemo } from 'react';
 import { getAccessToken } from '@/lib/auth';
 
 const WS_URL = process.env.NEXT_PUBLIC_API_URL?.replace('http', 'ws') || 'ws://localhost:8000/api/v1';
@@ -28,7 +28,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
   const subscribers = useRef<Set<(message: WebSocketMessage) => void>>(new Set());
   const maxReconnectAttempts = 5;
   const reconnectDelay = 3000;
-  const isConnectedRef = useRef(false);
+  const [isConnected, setIsConnected] = useState(false);
   const pingInterval = useRef<NodeJS.Timeout | undefined>(undefined);
   const isUnmounted = useRef(false);
 
@@ -58,7 +58,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
 
       ws.current.onopen = () => {
         console.log('WebSocket connected');
-        isConnectedRef.current = true;
+        setIsConnected(true);
         reconnectAttempts.current = 0;
 
         // Clear any existing ping interval
@@ -107,7 +107,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
 
       ws.current.onclose = (event) => {
         console.log('WebSocket closed:', event.code, event.reason);
-        isConnectedRef.current = false;
+        setIsConnected(false);
 
         // Clear ping interval
         if (pingInterval.current) {
@@ -173,10 +173,10 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     };
   }, [connect, disconnect]);
 
-  const value: WebSocketContextType = {
-    isConnected: isConnectedRef.current,
+  const value: WebSocketContextType = useMemo(() => ({
+    isConnected,
     subscribe
-  };
+  }), [isConnected, subscribe]);
 
   return (
     <WebSocketContext.Provider value={value}>

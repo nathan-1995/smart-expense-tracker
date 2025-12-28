@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { bankAccountApi } from "@/lib/api";
+import { useBankAccounts, useBankAccountMutations } from "@/hooks/api/useBankAccounts";
 import { BankAccount, AccountType, Currency } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,15 +11,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Building2, CreditCard, Trash2, Edit } from "lucide-react";
-import { toast } from "sonner";
 
 export default function BankAccountsPage() {
-  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
-  const [loading, setLoading] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<BankAccount | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Use React Query hooks - automatic caching and refetching
+  const { data: bankAccountData, isLoading: loading } = useBankAccounts();
+  const { createBankAccount, updateBankAccount, deleteBankAccount } = useBankAccountMutations();
+
+  const bankAccounts = bankAccountData?.bank_accounts || [];
+  const isSubmitting = createBankAccount.isPending || updateBankAccount.isPending || deleteBankAccount.isPending;
 
   // Form state
   const [formData, setFormData] = useState({
@@ -32,8 +35,6 @@ export default function BankAccountsPage() {
   });
 
   useEffect(() => {
-    loadBankAccounts();
-
     // Check if #add hash is present to open create dialog
     if (window.location.hash === '#add') {
       setIsCreateDialogOpen(true);
@@ -42,70 +43,39 @@ export default function BankAccountsPage() {
     }
   }, []);
 
-  const loadBankAccounts = async () => {
-    try {
-      setLoading(true);
-      const response = await bankAccountApi.getBankAccounts();
-      setBankAccounts(response.bank_accounts);
-    } catch (error: any) {
-      const message = error?.response?.data?.detail || "Failed to load bank accounts";
-      toast.error(message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleCreate = async () => {
-    try {
-      setIsSubmitting(true);
-      const data = {
-        account_name: formData.account_name,
-        bank_name: formData.bank_name,
-        account_number_last4: formData.account_number_last4 || null,
-        account_type: formData.account_type,
-        currency: formData.currency,
-        opening_balance: formData.opening_balance ? parseFloat(formData.opening_balance) : null,
-      };
+    const data = {
+      account_name: formData.account_name,
+      bank_name: formData.bank_name,
+      account_number_last4: formData.account_number_last4 || null,
+      account_type: formData.account_type,
+      currency: formData.currency,
+      opening_balance: formData.opening_balance ? parseFloat(formData.opening_balance) : null,
+    };
 
-      await bankAccountApi.createBankAccount(data);
-      toast.success("Bank account created successfully");
-      setIsCreateDialogOpen(false);
-      resetForm();
-      loadBankAccounts();
-    } catch (error: any) {
-      const message = error?.response?.data?.detail || "Failed to create bank account";
-      toast.error(message);
-    } finally {
-      setIsSubmitting(false);
-    }
+    // Use React Query mutation
+    await createBankAccount.mutateAsync(data);
+    setIsCreateDialogOpen(false);
+    resetForm();
   };
 
   const handleEdit = async () => {
     if (!editingAccount) return;
 
-    try {
-      setIsSubmitting(true);
-      const data = {
-        account_name: formData.account_name,
-        bank_name: formData.bank_name,
-        account_number_last4: formData.account_number_last4 || null,
-        account_type: formData.account_type,
-        currency: formData.currency,
-        opening_balance: formData.opening_balance ? parseFloat(formData.opening_balance) : null,
-      };
+    const data = {
+      account_name: formData.account_name,
+      bank_name: formData.bank_name,
+      account_number_last4: formData.account_number_last4 || null,
+      account_type: formData.account_type,
+      currency: formData.currency,
+      opening_balance: formData.opening_balance ? parseFloat(formData.opening_balance) : null,
+    };
 
-      await bankAccountApi.updateBankAccount(editingAccount.id, data);
-      toast.success("Bank account updated successfully");
-      setIsEditDialogOpen(false);
-      setEditingAccount(null);
-      resetForm();
-      loadBankAccounts();
-    } catch (error: any) {
-      const message = error?.response?.data?.detail || "Failed to update bank account";
-      toast.error(message);
-    } finally {
-      setIsSubmitting(false);
-    }
+    // Use React Query mutation
+    await updateBankAccount.mutateAsync({ id: editingAccount.id, data });
+    setIsEditDialogOpen(false);
+    setEditingAccount(null);
+    resetForm();
   };
 
   const handleDelete = async (accountId: string, accountName: string) => {
@@ -113,14 +83,8 @@ export default function BankAccountsPage() {
       return;
     }
 
-    try {
-      await bankAccountApi.deleteBankAccount(accountId);
-      toast.success("Bank account deleted successfully");
-      loadBankAccounts();
-    } catch (error: any) {
-      const message = error?.response?.data?.detail || "Failed to delete bank account";
-      toast.error(message);
-    }
+    // Use React Query mutation
+    await deleteBankAccount.mutateAsync(accountId);
   };
 
   const openEditDialog = (account: BankAccount) => {

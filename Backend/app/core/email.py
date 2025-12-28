@@ -335,6 +335,202 @@ This link will expire in 1 hour. If you didn't request a password reset, you can
         )
 
     @staticmethod
+    def send_invoice_email(
+        to_email: str,
+        to_name: str,
+        invoice_number: str,
+        invoice_amount: str,
+        invoice_due_date: str,
+        from_company: str,
+        pdf_attachment: bytes,
+        message: str = None
+    ) -> bool:
+        """
+        Send invoice to client via email with PDF attachment.
+
+        Args:
+            to_email: Client's email address
+            to_name: Client's name
+            invoice_number: Invoice number
+            invoice_amount: Total invoice amount with currency
+            invoice_due_date: Invoice due date
+            from_company: Company name sending the invoice
+            pdf_attachment: PDF file bytes
+            message: Optional personal message
+
+        Returns:
+            bool: True if sent successfully
+        """
+        subject = f"Invoice {invoice_number} from {from_company}"
+
+        default_message = f"Please find attached invoice {invoice_number} for your review."
+        display_message = message if message else default_message
+
+        html_body = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+    <table role="presentation" style="width: 100%; border-collapse: collapse;">
+        <tr>
+            <td align="center" style="padding: 40px 0;">
+                <table role="presentation" style="width: 600px; border-collapse: collapse; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <tr>
+                        <td style="padding: 40px 40px 20px 40px; text-align: center;">
+                            <h1 style="margin: 0; font-size: 24px; font-weight: 600; color: #1a1a1a;">New Invoice from {from_company}</h1>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 0 40px 40px 40px;">
+                            <p style="margin: 0 0 16px 0; font-size: 16px; line-height: 24px; color: #4a4a4a;">
+                                Hello {to_name},
+                            </p>
+                            <p style="margin: 0 0 24px 0; font-size: 16px; line-height: 24px; color: #4a4a4a;">
+                                {display_message}
+                            </p>
+
+                            <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #f9fafb; border-radius: 6px; margin: 24px 0;">
+                                <tr>
+                                    <td style="padding: 20px;">
+                                        <table role="presentation" style="width: 100%;">
+                                            <tr>
+                                                <td style="padding: 8px 0;">
+                                                    <span style="color: #6b7280; font-size: 14px;">Invoice Number:</span>
+                                                    <span style="color: #1a1a1a; font-weight: 600; font-size: 14px; float: right;">{invoice_number}</span>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding: 8px 0;">
+                                                    <span style="color: #6b7280; font-size: 14px;">Amount Due:</span>
+                                                    <span style="color: #2563eb; font-weight: 700; font-size: 18px; float: right;">{invoice_amount}</span>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding: 8px 0;">
+                                                    <span style="color: #6b7280; font-size: 14px;">Due Date:</span>
+                                                    <span style="color: #1a1a1a; font-weight: 600; font-size: 14px; float: right;">{invoice_due_date}</span>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <p style="margin: 24px 0 0 0; font-size: 14px; line-height: 20px; color: #6b7280;">
+                                The invoice is attached to this email as a PDF file. Please review it and make payment by the due date shown above.
+                            </p>
+
+                            <p style="margin: 16px 0 0 0; font-size: 14px; line-height: 20px; color: #6b7280;">
+                                If you have any questions about this invoice, please don't hesitate to contact us.
+                            </p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 20px 40px; background-color: #f9fafb; border-top: 1px solid #e5e7eb; border-radius: 0 0 8px 8px;">
+                            <p style="margin: 0; font-size: 12px; line-height: 18px; color: #9ca3af; text-align: center;">
+                                &copy; {datetime.utcnow().year} {from_company}. All rights reserved.<br>
+                                This is an automated email, please do not reply.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+"""
+
+        text_body = f"""
+New Invoice from {from_company}
+
+Hello {to_name},
+
+{display_message}
+
+Invoice Details:
+----------------
+Invoice Number: {invoice_number}
+Amount Due: {invoice_amount}
+Due Date: {invoice_due_date}
+
+The invoice is attached to this email as a PDF file. Please review it and make payment by the due date shown above.
+
+If you have any questions about this invoice, please don't hesitate to contact us.
+
+---
+© {datetime.utcnow().year} {from_company}. All rights reserved.
+"""
+
+        # Validate ZeptoMail configuration
+        if not all([
+            settings.ZEPTOMAIL_API_KEY,
+            settings.FROM_EMAIL
+        ]):
+            raise Exception("ZeptoMail configuration is incomplete. Check environment variables.")
+
+        try:
+            # Encode PDF as base64 for attachment
+            import base64
+            pdf_base64 = base64.b64encode(pdf_attachment).decode('utf-8')
+
+            # Prepare the request payload with attachment
+            payload = {
+                "from": {
+                    "address": settings.FROM_EMAIL,
+                    "name": from_company
+                },
+                "to": [
+                    {
+                        "email_address": {
+                            "address": to_email,
+                            "name": to_name
+                        }
+                    }
+                ],
+                "subject": subject,
+                "htmlbody": html_body,
+                "textbody": text_body,
+                "attachments": [
+                    {
+                        "content": pdf_base64,
+                        "mime_type": "application/pdf",
+                        "name": f"invoice_{invoice_number}.pdf"
+                    }
+                ]
+            }
+
+            # Set up headers
+            headers = {
+                "accept": "application/json",
+                "content-type": "application/json",
+                "authorization": settings.ZEPTOMAIL_API_KEY
+            }
+
+            # Send the email via ZeptoMail API
+            with httpx.Client(timeout=30.0) as client:
+                response = client.post(
+                    settings.ZEPTOMAIL_API_URL,
+                    json=payload,
+                    headers=headers
+                )
+
+                # Check if successful (2xx status code)
+                if response.status_code in range(200, 300):
+                    return True
+                else:
+                    print(f"ZeptoMail API error: {response.status_code} - {response.text}")
+                    return False
+
+        except Exception as e:
+            # Log error (in production, use proper logging)
+            print(f"Failed to send invoice email to {to_email}: {str(e)}")
+            return False
+
+    @staticmethod
     def send_document_processed_email(
         to_email: str,
         first_name: str,
