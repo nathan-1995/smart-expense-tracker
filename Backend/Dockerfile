@@ -26,6 +26,16 @@ WORKDIR /app
 # Install runtime dependencies only
 RUN apt-get update && apt-get install -y \
     libpq5 \
+    libxml2 \
+    libxslt1.1 \
+    libffi8 \
+    libcairo2 \
+    libpango-1.0-0 \
+    libpangocairo-1.0-0 \
+    libgdk-pixbuf2.0-0 \
+    libxcb-shm0 \
+    libxcb-render0 \
+    shared-mime-info \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy Python packages from builder
