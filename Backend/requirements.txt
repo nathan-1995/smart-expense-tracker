@@ -28,3 +28,7 @@ google-generativeai==0.8.3
 # Caching & Task Queue
 redis==7.0.1
 celery==5.5.3
+
+# PDF Generation
+xhtml2pdf==0.2.16
+Jinja2==3.1.5
