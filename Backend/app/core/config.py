@@ -1,5 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import field_validator
+from pydantic import field_validator, Field
 from typing import List, Union
 import json
 
@@ -11,6 +11,9 @@ class Settings(BaseSettings):
     Uses Pydantic Settings for validation and type safety.
     Values are loaded from .env file in the Backend directory.
     """
+
+    # Server Configuration
+    PORT: int = Field(default=8000)
 
     # Database Configuration
     DATABASE_URL: str
@@ -31,19 +34,20 @@ class Settings(BaseSettings):
 
     # CORS Configuration
     BACKEND_CORS_ORIGINS: Union[List[str], str] = [
-        # Custom domains (Production)
+        # Production domains
         "https://fintracker.cc",
         "https://www.fintracker.cc",
-
-        # Custom domains (Development)
         "https://dev.fintracker.cc",
         "https://www.dev.fintracker.cc",
 
-        # Local dev
+        # Railway deployment domains (update with actual URLs after deployment)
+        "https://*.railway.app",
+        "https://fintrack-backend.up.railway.app",
+        "https://fintrack-frontend.up.railway.app",
+
+        # Local development
         "http://localhost:3000",
         "http://127.0.0.1:3000",
-
-        # Without nginx proxy
         "http://localhost:8000",
     ]
 
