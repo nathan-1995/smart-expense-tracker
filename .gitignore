@@ -210,3 +210,11 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# Railway
+.railway/
+railway.json.local
+*.railway.json.local
+
+# Environment files
+.env.local
+.env.*.local
