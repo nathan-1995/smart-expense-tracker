@@ -3,18 +3,20 @@ set -e
 
 echo "Starting FinTrack Backend..."
 
-# Run database migrations if DATABASE_URL is set
-if [ -n "$DATABASE_URL" ]; then
-    echo "Running database migrations..."
-    alembic upgrade head
+# Migrations can fail in Railway if the DB isn't reachable (security group, IP allowlist, etc.).
+# Don't block the web server from starting unless explicitly requested.
+if [ "${RUN_MIGRATIONS:-true}" = "true" ] && [ -n "${DATABASE_URL:-}" ]; then
+  echo "Running database migrations..."
+  if alembic upgrade head; then
     echo "Migrations completed successfully!"
+  else
+    echo "Migrations failed; continuing startup."
+  fi
 else
-    echo "No DATABASE_URL set, skipping migrations"
+  echo "Skipping migrations (set RUN_MIGRATIONS=true to enable)."
 fi
 
-# Start the application
 echo "Starting uvicorn server..."
-# Use PORT env var if provided by Railway, default to 8000
-PORT=${PORT:-8000}
+PORT="${PORT:-8000}"
 echo "Server will listen on port $PORT"
-exec uvicorn app.main:app --host 0.0.0.0 --port $PORT
+exec uvicorn app.main:app --host 0.0.0.0 --port "$PORT"
