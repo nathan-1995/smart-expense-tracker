@@ -14,4 +14,7 @@ fi
 
 # Start the application
 echo "Starting uvicorn server..."
-exec uvicorn app.main:app --host 0.0.0.0 --port 8000
+# Use PORT env var if provided by Railway, default to 8000
+PORT=${PORT:-8000}
+echo "Server will listen on port $PORT"
+exec uvicorn app.main:app --host 0.0.0.0 --port $PORT
