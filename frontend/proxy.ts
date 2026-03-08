@@ -56,10 +56,12 @@ export function proxy(request: NextRequest) {
     if (hostname.includes("dev.fintracker.cc")) {
       // Dev environment: dev.fintracker.cc → app.dev.fintracker.cc
       appUrl.hostname = "app.dev.fintracker.cc";
+      appUrl.port = "";
       return NextResponse.redirect(appUrl);
     } else if (hostname.includes("fintracker.cc")) {
       // Production: fintracker.cc → app.fintracker.cc
       appUrl.hostname = "app.fintracker.cc";
+      appUrl.port = "";
       return NextResponse.redirect(appUrl);
     }
   }
@@ -79,6 +81,7 @@ export function proxy(request: NextRequest) {
       marketingUrl.hostname = "fintracker.cc";
     }
 
+    marketingUrl.port = "";
     return NextResponse.redirect(marketingUrl);
   }
 
