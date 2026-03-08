@@ -2,6 +2,7 @@ from typing import Optional, Literal
 from uuid import UUID
 from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from math import ceil
 
@@ -13,9 +14,13 @@ from app.schemas.invoice import (
     InvoiceResponse,
     InvoiceListResponse,
     InvoiceStats,
+    InvoiceSendRequest,
 )
 from app.repositories.invoice_repository import InvoiceRepository
 from app.repositories.client_repository import ClientRepository
+from app.repositories.settings_repository import SettingsRepository
+from app.services.pdf_service import PDFService
+from app.core.email import EmailService
 
 
 router = APIRouter()
@@ -260,4 +265,257 @@ async def update_invoice_status(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Invoice not found",
         )
+    return InvoiceResponse.model_validate(invoice)
+
+
+@router.get("/{invoice_id}/pdf")
+async def download_invoice_pdf(
+    invoice_id: UUID,
+    template: str = Query("default", description="Template name (default, modern)"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Response:
+    """
+    Generate and download invoice as PDF.
+
+    Args:
+        invoice_id: Invoice UUID
+        template: Template name to use (default, modern)
+        db: Database session (injected)
+        current_user: Current authenticated user (injected)
+
+    Returns:
+        PDF file as downloadable response
+
+    Raises:
+        401: Not authenticated
+        404: Invoice not found
+    """
+    # Get invoice
+    invoice = await InvoiceRepository.get_by_id(db, invoice_id, current_user.id)
+    if not invoice:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Invoice not found",
+        )
+
+    # Load company settings
+    user_settings = await SettingsRepository.get_by_user_id(db, current_user.id)
+    company_settings = None
+    if user_settings:
+        company_settings = {
+            'company_name': user_settings.company_name,
+            'company_logo': user_settings.company_logo,
+            'company_address': user_settings.company_address,
+            'company_phone': user_settings.company_phone,
+            'company_email': user_settings.company_email,
+            'company_website': user_settings.company_website,
+            'tax_id': user_settings.tax_id,
+        }
+
+    # Generate PDF
+    try:
+        pdf_bytes = await PDFService.generate_invoice_pdf(
+            db=db,
+            invoice=invoice,
+            template_name=template,
+            company_settings=company_settings
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate PDF: {str(e)}"
+        )
+
+    # Return PDF as downloadable file
+    filename = f"invoice_{invoice.invoice_number}.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"'
+        }
+    )
+
+
+@router.get("/{invoice_id}/preview")
+async def preview_invoice_html(
+    invoice_id: UUID,
+    template: str = Query("default", description="Template name (default, modern)"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Response:
+    """
+    Preview invoice as HTML (before PDF generation).
+
+    Args:
+        invoice_id: Invoice UUID
+        template: Template name to use
+        db: Database session (injected)
+        current_user: Current authenticated user (injected)
+
+    Returns:
+        HTML response
+
+    Raises:
+        401: Not authenticated
+        404: Invoice not found
+    """
+    # Get invoice
+    invoice = await InvoiceRepository.get_by_id(db, invoice_id, current_user.id)
+    if not invoice:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Invoice not found",
+        )
+
+    # Load company settings
+    user_settings = await SettingsRepository.get_by_user_id(db, current_user.id)
+    company_settings = None
+    if user_settings:
+        company_settings = {
+            'company_name': user_settings.company_name,
+            'company_logo': user_settings.company_logo,
+            'company_address': user_settings.company_address,
+            'company_phone': user_settings.company_phone,
+            'company_email': user_settings.company_email,
+            'company_website': user_settings.company_website,
+            'tax_id': user_settings.tax_id,
+        }
+
+    # Generate HTML
+    try:
+        html_content = await PDFService.generate_invoice_html(
+            db=db,
+            invoice=invoice,
+            template_name=template,
+            company_settings=company_settings
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate HTML: {str(e)}"
+        )
+
+    return Response(
+        content=html_content,
+        media_type="text/html"
+    )
+
+
+@router.post("/{invoice_id}/send", response_model=InvoiceResponse)
+async def send_invoice_email(
+    invoice_id: UUID,
+    send_request: InvoiceSendRequest,
+    template: str = Query("default", description="Template name (default, modern)"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_verified_user),
+) -> InvoiceResponse:
+    """
+    Send invoice to client via email with PDF attachment.
+
+    This endpoint:
+    1. Generates a PDF of the invoice
+    2. Sends it to the client's email address
+    3. Updates the invoice status to 'sent'
+    4. Updates the sent_at timestamp
+
+    Args:
+        invoice_id: Invoice UUID
+        send_request: Request body with optional message
+        template: Template name to use for PDF
+        db: Database session (injected)
+        current_user: Current authenticated user (injected)
+
+    Returns:
+        Updated invoice data
+
+    Raises:
+        401: Not authenticated
+        403: Email not verified
+        404: Invoice or client not found
+        500: Email sending failed
+    """
+    from datetime import datetime
+
+    # Get invoice
+    invoice = await InvoiceRepository.get_by_id(db, invoice_id, current_user.id)
+    if not invoice:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Invoice not found",
+        )
+
+    # Get client
+    client = await ClientRepository.get_by_id(db, invoice.client_id, current_user.id)
+    if not client or not client.email:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Client not found or client has no email address",
+        )
+
+    # Load company settings
+    user_settings = await SettingsRepository.get_by_user_id(db, current_user.id)
+    company_settings = None
+    if user_settings:
+        company_settings = {
+            'company_name': user_settings.company_name,
+            'company_logo': user_settings.company_logo,
+            'company_address': user_settings.company_address,
+            'company_phone': user_settings.company_phone,
+            'company_email': user_settings.company_email,
+            'company_website': user_settings.company_website,
+            'tax_id': user_settings.tax_id,
+        }
+
+    company_name = company_settings.get('company_name', 'FinTrack') if company_settings else 'FinTrack'
+
+    # Generate PDF
+    try:
+        pdf_bytes = await PDFService.generate_invoice_pdf(
+            db=db,
+            invoice=invoice,
+            template_name=template,
+            company_settings=company_settings
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate PDF: {str(e)}"
+        )
+
+    # Format amount and date for email
+    invoice_amount = f"{invoice.currency} {invoice.total:.2f}"
+    invoice_due_date = invoice.due_date.strftime("%B %d, %Y")
+
+    # Send email
+    try:
+        email_sent = EmailService.send_invoice_email(
+            to_email=client.email,
+            to_name=client.name,
+            invoice_number=invoice.invoice_number,
+            invoice_amount=invoice_amount,
+            invoice_due_date=invoice_due_date,
+            from_company=company_name,
+            pdf_attachment=pdf_bytes,
+            message=send_request.message
+        )
+
+        if not email_sent:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to send email. Please check email configuration."
+            )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to send email: {str(e)}"
+        )
+
+    # Update invoice status to 'sent' and update sent_at timestamp
+    invoice.status = "sent"
+    invoice.sent_at = datetime.utcnow()  # Use naive UTC datetime for PostgreSQL
+    await db.commit()
+    await db.refresh(invoice)
+
     return InvoiceResponse.model_validate(invoice)

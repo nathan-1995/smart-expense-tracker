@@ -160,6 +160,7 @@ export interface Invoice {
   id: string;
   user_id: string;
   client_id: string;
+  client_name?: string | null; // Populated by backend when listing invoices
   invoice_number: string;
   issue_date: string;
   due_date: string;
@@ -227,6 +228,35 @@ export interface InvoiceStats {
   total_amount: number;
   paid_amount: number;
   outstanding_amount: number;
+}
+
+// User Settings types
+export interface UserSettings {
+  id: string;
+  user_id: string;
+  company_name: string | null;
+  company_logo: string | null;
+  company_address: string | null;
+  company_phone: string | null;
+  company_email: string | null;
+  company_website: string | null;
+  tax_id: string | null;
+  default_currency: string | null;
+  default_template: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserSettingsUpdate {
+  company_name?: string;
+  company_logo?: string;
+  company_address?: string;
+  company_phone?: string;
+  company_email?: string;
+  company_website?: string;
+  tax_id?: string;
+  default_currency?: string;
+  default_template?: string;
 }
 
 // Admin types

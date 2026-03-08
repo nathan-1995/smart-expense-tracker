@@ -2,6 +2,7 @@
 
 from app.models.base import BaseModel
 from app.models.user import User
+from app.models.user_settings import UserSettings
 from app.models.client import Client
 from app.models.invoice import Invoice
 from app.models.invoice_item import InvoiceItem
@@ -14,6 +15,7 @@ from app.models.api_usage import APIUsage, APIServiceType, APIOperationType
 __all__ = [
     "BaseModel",
     "User",
+    "UserSettings",
     "Client",
     "Invoice",
     "InvoiceItem",

@@ -1,33 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { invoiceApi } from "@/lib/api";
-import { InvoiceStats } from "@/lib/types";
+import { useInvoiceStats } from "@/hooks/api/useInvoices";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, Receipt, DollarSign, TrendingUp } from "lucide-react";
 import StatCardSkeleton from "@/components/dashboard/StatCardSkeleton";
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const [invoiceStats, setInvoiceStats] = useState<InvoiceStats | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    loadInvoiceStats();
-  }, []);
-
-  const loadInvoiceStats = async () => {
-    try {
-      setLoading(true);
-      const stats = await invoiceApi.getStats();
-      setInvoiceStats(stats);
-    } catch (error) {
-      console.error("Failed to load invoice stats:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: invoiceStats, isLoading: loading } = useInvoiceStats();
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {

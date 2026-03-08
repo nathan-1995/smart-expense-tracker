@@ -133,3 +133,9 @@ class InvoiceStats(BaseModel):
     def serialize_amounts(self, value: float) -> float:
         """Ensure amounts are serialized as floats not strings."""
         return float(value) if value is not None else 0.0
+
+
+class InvoiceSendRequest(BaseModel):
+    """Schema for sending invoice via email."""
+
+    message: Optional[str] = Field(None, max_length=500, description="Optional personal message to include in email")

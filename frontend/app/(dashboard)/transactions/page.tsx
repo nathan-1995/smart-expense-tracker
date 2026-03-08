@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { documentApi, transactionApi, bankAccountApi } from "@/lib/api";
-import { Transaction, TransactionStats, Document, BankAccount } from "@/lib/types";
+import { documentApi, bankAccountApi } from "@/lib/api";
+import { useTransactions, useTransactionStats } from "@/hooks/api/useTransactions";
+import { useActiveBankAccounts } from "@/hooks/api/useBankAccounts";
+import { Document } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Upload, FileText, TrendingUp, TrendingDown, DollarSign, Filter, HelpCircle } from "lucide-react";
@@ -19,18 +21,28 @@ import FileUpload from "@/components/ui/file-upload";
 export default function TransactionsPage() {
   const router = useRouter();
   const { subscribe } = useWebSocketContext();
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [stats, setStats] = useState<TransactionStats | null>(null);
-  const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [filterType, setFilterType] = useState<string>("all");
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+
+  // Build filters
+  const filters = {
+    page,
+    page_size: 20,
+    transaction_type: filterType !== "all" ? filterType : undefined,
+    category: filterCategory !== "all" ? filterCategory : undefined,
+  };
+
+  // Use React Query hooks - automatic caching and refetching
+  const { data: transactionData, isLoading: loading } = useTransactions(filters);
+  const { data: stats } = useTransactionStats();
+  const { data: bankAccounts = [], isLoading: bankAccountsLoading } = useActiveBankAccounts();
+
+  const transactions = transactionData?.transactions || [];
+  const totalPages = transactionData?.total_pages || 1;
 
   // Bank account selection
-  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
-  const [bankAccountsLoading, setBankAccountsLoading] = useState(true);
   const [selectedBankAccountId, setSelectedBankAccountId] = useState<string>("");
   const [isAccountDialogOpen, setIsAccountDialogOpen] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
@@ -56,9 +68,6 @@ export default function TransactionsPage() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
   useEffect(() => {
-    loadTransactions();
-    loadStats();
-    loadBankAccounts();
     loadPendingDocuments();
 
     // Subscribe to WebSocket document completion notifications
@@ -80,45 +89,7 @@ export default function TransactionsPage() {
     return () => {
       unsubscribe();
     };
-  }, [page, filterType, filterCategory, subscribe, router]);
-
-  const loadBankAccounts = async () => {
-    try {
-      setBankAccountsLoading(true);
-      const accounts = await bankAccountApi.getActiveBankAccounts();
-      setBankAccounts(accounts);
-    } catch (error) {
-      console.error("Failed to load bank accounts:", error);
-    } finally {
-      setBankAccountsLoading(false);
-    }
-  };
-
-  const loadTransactions = async () => {
-    try {
-      setLoading(true);
-      const params: any = { page, page_size: 50 };
-      if (filterType !== "all") params.transaction_type = filterType;
-      if (filterCategory !== "all") params.category = filterCategory;
-
-      const response = await transactionApi.listTransactions(params);
-      setTransactions(response.transactions);
-      setTotalPages(response.total_pages);
-    } catch (error) {
-      console.error("Failed to load transactions:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadStats = async () => {
-    try {
-      const statsData = await transactionApi.getTransactionStats();
-      setStats(statsData);
-    } catch (error) {
-      console.error("Failed to load stats:", error);
-    }
-  };
+  }, [subscribe, router]);
 
   const loadPendingDocuments = async () => {
     try {

@@ -65,6 +65,7 @@ class User(BaseModel):
     locked_until = Column(DateTime, nullable=True)
 
     # Relationships
+    settings = relationship("UserSettings", back_populates="user", uselist=False, cascade="all, delete-orphan")
     clients = relationship("Client", back_populates="user", cascade="all, delete-orphan")
     invoices = relationship("Invoice", back_populates="user", cascade="all, delete-orphan")
     documents = relationship("Document", back_populates="user", cascade="all, delete-orphan")

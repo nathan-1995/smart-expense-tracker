@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import auth, users, clients, invoices, admin, banners, documents, transactions, bank_accounts, api_usage, websocket
+from app.api.v1.endpoints import auth, users, clients, invoices, admin, banners, documents, transactions, bank_accounts, api_usage, websocket, settings
 
 
 # Create main API v1 router
@@ -18,6 +18,13 @@ api_router.include_router(
     users.router,
     prefix="/users",
     tags=["Users"]
+)
+
+# Include settings endpoints
+api_router.include_router(
+    settings.router,
+    prefix="/settings",
+    tags=["Settings"]
 )
 
 # Include client endpoints

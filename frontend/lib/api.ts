@@ -18,6 +18,8 @@ import {
   InvoiceUpdate,
   InvoiceListResponse,
   InvoiceStats,
+  UserSettings,
+  UserSettingsUpdate,
   AdminUser,
   AdminUserUpdate,
   AdminUserListResponse,
@@ -50,6 +52,14 @@ import { getAccessToken, getRefreshToken, setTokens, removeTokens } from "./auth
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
 
+// Request deduplication cache
+const pendingRequests = new Map<string, Promise<any>>();
+
+// Helper to create a unique key for requests
+function getRequestKey(config: InternalAxiosRequestConfig): string {
+  return `${config.method}:${config.url}:${JSON.stringify(config.params)}`;
+}
+
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({
   baseURL: API_URL,
@@ -58,13 +68,28 @@ const apiClient: AxiosInstance = axios.create({
   },
 });
 
-// Request interceptor to add token
+// Request interceptor to add token and handle deduplication
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = getAccessToken();
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // Only deduplicate GET requests
+    if (config.method?.toLowerCase() === 'get') {
+      const requestKey = getRequestKey(config);
+      const pendingRequest = pendingRequests.get(requestKey);
+
+      if (pendingRequest) {
+        // Return the pending request instead of making a new one
+        return Promise.reject({
+          __CANCEL__: true,
+          pendingRequest
+        });
+      }
+    }
+
     return config;
   },
   (error) => Promise.reject(error)
@@ -72,12 +97,30 @@ apiClient.interceptors.request.use(
 
 // Response interceptor for error handling
 apiClient.interceptors.response.use(
-  (response) => response,
-  async (error: AxiosError<ApiError>) => {
+  (response) => {
+    // Clean up pending request from cache
+    if (response.config.method?.toLowerCase() === 'get') {
+      const requestKey = getRequestKey(response.config as InternalAxiosRequestConfig);
+      pendingRequests.delete(requestKey);
+    }
+    return response;
+  },
+  async (error: any) => {
+    // Handle deduplication - return the pending promise
+    if (error.__CANCEL__ && error.pendingRequest) {
+      return error.pendingRequest;
+    }
+
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
+    // Clean up pending request from cache on error
+    if (originalRequest?.method?.toLowerCase() === 'get') {
+      const requestKey = getRequestKey(originalRequest);
+      pendingRequests.delete(requestKey);
+    }
+
     // If error is 401 and we haven't retried yet, try to refresh token
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (error.response?.status === 401 && !originalRequest?._retry) {
       originalRequest._retry = true;
 
       try {
@@ -278,6 +321,46 @@ export const invoiceApi = {
 
   getStats: async (): Promise<InvoiceStats> => {
     const response = await apiClient.get<InvoiceStats>("/invoices/stats");
+    return response.data;
+  },
+
+  // Download invoice as PDF
+  downloadPDF: async (id: string, template: string = "default"): Promise<Blob> => {
+    const response = await apiClient.get(`/invoices/${id}/pdf?template=${template}`, {
+      responseType: "blob",
+    });
+    return response.data;
+  },
+
+  // Get invoice HTML preview
+  getHTMLPreview: async (id: string, template: string = "default"): Promise<string> => {
+    const response = await apiClient.get(`/invoices/${id}/preview?template=${template}`, {
+      responseType: "text",
+    });
+    return response.data;
+  },
+
+  // Send invoice via email
+  sendEmail: async (id: string, message?: string, template: string = "default"): Promise<Invoice> => {
+    const response = await apiClient.post<Invoice>(
+      `/invoices/${id}/send?template=${template}`,
+      { message: message || null }
+    );
+    return response.data;
+  },
+};
+
+// Settings API
+export const settingsApi = {
+  // Get user settings
+  get: async (): Promise<UserSettings> => {
+    const response = await apiClient.get<UserSettings>("/settings");
+    return response.data;
+  },
+
+  // Update user settings
+  update: async (data: UserSettingsUpdate): Promise<UserSettings> => {
+    const response = await apiClient.put<UserSettings>("/settings", data);
     return response.data;
   },
 };

@@ -7,7 +7,7 @@ import { Invoice, Client } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Edit, Trash2, Send, DollarSign, Calendar, User, FileText } from "lucide-react";
+import { ArrowLeft, Edit, Trash2, Send, DollarSign, Calendar, User, FileText, Download, Mail, Eye } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 
@@ -18,6 +18,9 @@ export default function InvoiceDetailPage() {
 
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [sendingReminder, setSendingReminder] = useState(false);
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [client, setClient] = useState<Client | null>(null);
 
@@ -73,6 +76,80 @@ export default function InvoiceDetailPage() {
     } catch (error: unknown) {
       const apiError = error as { response?: { data?: { detail?: string } } };
       toast.error(apiError.response?.data?.detail || "Failed to update status");
+    }
+  };
+
+  const handleDownloadPDF = async () => {
+    try {
+      setDownloading(true);
+      const pdfBlob = await invoiceApi.downloadPDF(invoiceId);
+
+      // Create download link
+      const url = window.URL.createObjectURL(pdfBlob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `invoice_${invoice?.invoice_number || invoiceId}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast.success("PDF downloaded successfully");
+    } catch (error: unknown) {
+      const apiError = error as { response?: { data?: { detail?: string } } };
+      toast.error(apiError.response?.data?.detail || "Failed to download PDF");
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const handleSendEmail = async () => {
+    if (!client?.email) {
+      toast.error("Client has no email address");
+      return;
+    }
+
+    try {
+      setSending(true);
+      const updated = await invoiceApi.sendEmail(invoiceId);
+      setInvoice(updated);
+      toast.success(`Invoice sent to ${client.email}`);
+    } catch (error: unknown) {
+      const apiError = error as { response?: { data?: { detail?: string } } };
+      toast.error(apiError.response?.data?.detail || "Failed to send invoice");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleSendReminder = async () => {
+    if (!client?.email) {
+      toast.error("Client has no email address");
+      return;
+    }
+
+    if (invoice?.status !== "overdue" && invoice?.status !== "sent") {
+      toast.error("Reminders can only be sent for overdue or sent invoices");
+      return;
+    }
+
+    try {
+      setSendingReminder(true);
+      const daysOverdue = invoice.due_date
+        ? Math.floor((new Date().getTime() - new Date(invoice.due_date).getTime()) / (1000 * 60 * 60 * 24))
+        : 0;
+
+      const reminderMessage = daysOverdue > 0
+        ? `This is a friendly reminder that invoice ${invoice.invoice_number} is ${daysOverdue} days overdue. Please process payment at your earliest convenience.`
+        : `This is a friendly reminder about invoice ${invoice.invoice_number}. Payment is due soon.`;
+
+      await invoiceApi.sendEmail(invoiceId, reminderMessage);
+      toast.success(`Payment reminder sent to ${client.email}`);
+    } catch (error: unknown) {
+      const apiError = error as { response?: { data?: { detail?: string } } };
+      toast.error(apiError.response?.data?.detail || "Failed to send reminder");
+    } finally {
+      setSendingReminder(false);
     }
   };
 
@@ -150,6 +227,34 @@ export default function InvoiceDetailPage() {
         </div>
 
         <div className="flex gap-2">
+          <Link href={`/invoices/${invoiceId}/preview`}>
+            <Button variant="outline">
+              <Eye className="mr-2 h-4 w-4" />
+              Preview
+            </Button>
+          </Link>
+          <Link href={`/invoices/${invoiceId}/edit`}>
+            <Button variant="outline">
+              <Edit className="mr-2 h-4 w-4" />
+              Edit
+            </Button>
+          </Link>
+          <Button
+            onClick={handleDownloadPDF}
+            variant="outline"
+            disabled={downloading}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            {downloading ? "Downloading..." : "Download PDF"}
+          </Button>
+          <Button
+            onClick={handleSendEmail}
+            variant="outline"
+            disabled={sending || !client?.email}
+          >
+            <Mail className="mr-2 h-4 w-4" />
+            {sending ? "Sending..." : "Email Invoice"}
+          </Button>
           {invoice.status === "draft" && (
             <Button onClick={() => handleUpdateStatus("sent")} variant="outline">
               <Send className="mr-2 h-4 w-4" />
@@ -157,14 +262,25 @@ export default function InvoiceDetailPage() {
             </Button>
           )}
           {(invoice.status === "sent" || invoice.status === "overdue") && (
-            <Button
-              onClick={() => handleUpdateStatus("paid")}
-              variant="outline"
-              className="hover:bg-green-600 hover:text-white hover:border-green-600 dark:hover:bg-green-600 dark:hover:text-white dark:hover:border-green-600 transition-colors"
-            >
-              <DollarSign className="mr-2 h-4 w-4" />
-              Mark as Paid
-            </Button>
+            <>
+              <Button
+                onClick={() => handleUpdateStatus("paid")}
+                variant="outline"
+                className="hover:bg-green-600 hover:text-white hover:border-green-600 dark:hover:bg-green-600 dark:hover:text-white dark:hover:border-green-600 transition-colors"
+              >
+                <DollarSign className="mr-2 h-4 w-4" />
+                Mark as Paid
+              </Button>
+              <Button
+                onClick={handleSendReminder}
+                variant="outline"
+                disabled={sendingReminder || !client?.email}
+                className="border-orange-600 text-orange-600 hover:bg-orange-600 hover:text-white dark:border-orange-500 dark:text-orange-500 dark:hover:bg-orange-500 dark:hover:text-white transition-colors"
+              >
+                <Mail className="mr-2 h-4 w-4" />
+                {sendingReminder ? "Sending..." : invoice.status === "overdue" ? "Send Reminder" : "Send Payment Reminder"}
+              </Button>
+            </>
           )}
           <Button
             onClick={handleDelete}

@@ -1,41 +1,21 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { clientApi } from "@/lib/api";
-import { Client } from "@/lib/types";
+import { useClients } from "@/hooks/api/useClients";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Mail, Phone, MapPin } from "lucide-react";
-import { toast } from "sonner";
 
 export default function ClientsPage() {
-  const [clients, setClients] = useState<Client[]>([]);
-  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
 
-  useEffect(() => {
-    loadClients();
-  }, [page]);
+  // Use React Query hook - automatic caching and refetching
+  const { data: clientData, isLoading: loading } = useClients(page, 20);
 
-  const loadClients = async () => {
-    try {
-      setLoading(true);
-      const response = await clientApi.list(page, 20);
-      setClients(response.clients);
-      setTotalPages(response.total_pages);
-    } catch (error: any) {
-      // Only show error toast for actual HTTP errors, not empty data
-      if (error?.response?.status && error.response.status !== 404) {
-        const message = error?.response?.data?.detail || "Failed to load clients";
-        toast.error(message);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+  const clients = clientData?.clients || [];
+  const totalPages = clientData?.total_pages || 1;
 
   return (
     <div className="space-y-6">

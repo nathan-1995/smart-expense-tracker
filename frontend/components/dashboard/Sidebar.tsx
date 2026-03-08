@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo, memo } from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { SidebarMenuItem, type MenuItem } from "./SidebarMenuItem";
 import { HamburgerMenu } from "@/components/ui/hamburger-menu";
@@ -112,15 +112,14 @@ const menuItems: MenuItem[] = [
 
 const settingsItems: MenuItem[] = [
   {
-    href: "/dashboard/profile",
+    href: "/profile",
     label: "Profile",
     icon: User,
   },
   {
-    href: "/dashboard/settings",
+    href: "/settings",
     label: "Settings",
     icon: Settings,
-    disabled: true,
   },
 ];
 
@@ -130,18 +129,18 @@ interface SidebarProps {
   onToggle?: () => void;
 }
 
-export function Sidebar({ onNavigate, isCollapsed = false, onToggle }: SidebarProps) {
+function SidebarComponent({ onNavigate, isCollapsed = false, onToggle }: SidebarProps) {
   const open = !isCollapsed;
   const { user, logout } = useAuth();
 
-  const getDisplayName = () => {
+  const displayName = useMemo(() => {
     if (!user) return "User";
     if (user.first_name && user.last_name) {
       return `${user.first_name} ${user.last_name}`;
     }
     if (user.business_name) return user.business_name;
     return user.email.split("@")[0];
-  };
+  }, [user]);
 
   return (
     <motion.nav
@@ -279,7 +278,7 @@ export function Sidebar({ onNavigate, isCollapsed = false, onToggle }: SidebarPr
                     className="flex-1 overflow-hidden"
                   >
                     <p className="text-sm font-medium whitespace-nowrap overflow-hidden text-ellipsis">
-                      {getDisplayName()}
+                      {displayName}
                     </p>
                     <p className="text-xs text-muted-foreground whitespace-nowrap overflow-hidden text-ellipsis">
                       {user?.email || ""}
@@ -325,3 +324,6 @@ export function Sidebar({ onNavigate, isCollapsed = false, onToggle }: SidebarPr
     </motion.nav>
   );
 }
+
+// Memoize Sidebar to prevent unnecessary re-renders
+export const Sidebar = memo(SidebarComponent);
