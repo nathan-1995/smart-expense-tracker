@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import LoadingScreen from "@/components/LoadingScreen";
+import { PageTransition } from "@/components/ui/page-transition";
 
 export default function AdminLayout({
   children,
@@ -32,5 +33,5 @@ export default function AdminLayout({
     return null;
   }
 
-  return <>{children}</>;
+  return <PageTransition>{children}</PageTransition>;
 }

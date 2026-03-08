@@ -11,6 +11,7 @@ import SystemBanners from "@/components/dashboard/SystemBanners";
 import LoadingScreen from "@/components/LoadingScreen";
 import { WebSocketProvider } from "@/contexts/WebSocketContext";
 import { cn } from "@/lib/utils";
+import { PageTransition } from "@/components/ui/page-transition";
 
 export default function DashboardLayout({
   children,
@@ -91,7 +92,7 @@ export default function DashboardLayout({
           {user && !user.is_verified && (
             <VerificationBanner userEmail={user.email} />
           )}
-          {children}
+          <PageTransition>{children}</PageTransition>
         </main>
       </div>
     </div>

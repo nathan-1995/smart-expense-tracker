@@ -5,6 +5,7 @@ import { useBankAccounts, useBankAccountMutations } from "@/hooks/api/useBankAcc
 import { BankAccount, AccountType, Currency } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/ui/loading-button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -16,6 +17,7 @@ export default function BankAccountsPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<BankAccount | null>(null);
+  const [deletingAccountId, setDeletingAccountId] = useState<string | null>(null);
 
   // Use React Query hooks - automatic caching and refetching
   const { data: bankAccountData, isLoading: loading } = useBankAccounts();
@@ -84,7 +86,12 @@ export default function BankAccountsPage() {
     }
 
     // Use React Query mutation
-    await deleteBankAccount.mutateAsync(accountId);
+    setDeletingAccountId(accountId);
+    try {
+      await deleteBankAccount.mutateAsync(accountId);
+    } finally {
+      setDeletingAccountId(null);
+    }
   };
 
   const openEditDialog = (account: BankAccount) => {
@@ -210,14 +217,18 @@ export default function BankAccountsPage() {
                         <Edit className="h-4 w-4 mr-1" />
                         Edit
                       </Button>
-                      <Button
+                      <LoadingButton
                         variant="destructive"
                         size="sm"
                         onClick={() => handleDelete(account.id, account.account_name)}
+                        isLoading={
+                          deleteBankAccount.isPending && deletingAccountId === account.id
+                        }
+                        loadingText="Deleting..."
                       >
                         <Trash2 className="h-4 w-4 mr-1" />
                         Delete
-                      </Button>
+                      </LoadingButton>
                     </div>
                   </CardContent>
                 </Card>
