@@ -8,22 +8,35 @@ interface JWTPayload {
 const ACCESS_TOKEN_KEY = "access_token";
 const REFRESH_TOKEN_KEY = "refresh_token";
 
+const getCookieDomain = (): string => {
+  if (typeof window === "undefined") return "";
+
+  const hostname = window.location.hostname.toLowerCase();
+
+  // Dev: share cookies across dev.fintracker.cc and app.dev.fintracker.cc
+  if (hostname === "dev.fintracker.cc" || hostname.endsWith(".dev.fintracker.cc")) {
+    return ";domain=.dev.fintracker.cc";
+  }
+
+  // Prod: share cookies across fintracker.cc and app.fintracker.cc
+  if (hostname === "fintracker.cc" || hostname.endsWith(".fintracker.cc")) {
+    return ";domain=.fintracker.cc";
+  }
+
+  return "";
+};
+
 // Helper function to set cookie
 const setCookie = (name: string, value: string, days: number = 7): void => {
   const expires = new Date();
   expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
-  // Set domain to parent domain so cookies work across fintracker.cc and app.fintracker.cc
-  const domain = typeof window !== 'undefined' && window.location.hostname.includes('fintracker.cc')
-    ? ';domain=.fintracker.cc'
-    : '';
+  const domain = getCookieDomain();
   document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/${domain}`;
 };
 
 // Helper function to delete cookie
 const deleteCookie = (name: string): void => {
-  const domain = typeof window !== 'undefined' && window.location.hostname.includes('fintracker.cc')
-    ? ';domain=.fintracker.cc'
-    : '';
+  const domain = getCookieDomain();
   document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/${domain}`;
 };
 
